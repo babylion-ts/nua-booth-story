@@ -6,6 +6,7 @@
 <title>추구미 vs 도달가능미</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
+  :root{ --ease:cubic-bezier(.4,0,.2,1); }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;height:100%;}
   body{
@@ -14,24 +15,69 @@
     user-select:none;-webkit-user-select:none;
     min-height:100dvh;display:flex;align-items:center;justify-content:center;overflow:hidden;
   }
-  /* 스토리 페이지와 동일: 3:4 이미지를 화면에 꽉 채워 중앙 배치 (레터박스는 흰 배경과 블렌드) */
+  /* 스토리와 동일: 3:4 이미지를 화면에 꽉 채워 중앙 배치 */
   .compare{
     width:min(100vw, calc(100dvh * 3 / 4));
     height:auto;display:block;-webkit-user-drag:none;user-drag:none;
   }
+
+  /* 탭 영역: 좌 25% 이전 · 가운데 50% 변우석 팝업 · 우 25% 다음 */
+  .zone{position:fixed;top:0;bottom:0;z-index:10;border:none;background:transparent;padding:0;margin:0;cursor:pointer;}
+  .zone-prev{left:0;width:25%;}
+  .zone-center{left:25%;width:50%;}
+  .zone-next{right:0;width:25%;}
+
+  /* 가운데 클릭 시 뜨는 변우석 팝업 */
+  .pop{
+    position:fixed;inset:0;z-index:50;display:none;
+    align-items:center;justify-content:center;padding:24px;
+    background:rgba(17,17,17,.72);cursor:pointer;
+  }
+  .pop.show{display:flex;}
+  .pop-img{
+    max-width:94vw;max-height:82dvh;width:auto;height:auto;
+    border-radius:12px;background:#fff;box-shadow:0 24px 70px rgba(0,0,0,.45);
+    -webkit-user-drag:none;user-drag:none;
+  }
+  .pop.show .pop-img{animation:popIn .22s var(--ease);}
+  @keyframes popIn{from{transform:scale(.9);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .pop-close{
+    position:absolute;top:16px;right:18px;width:46px;height:46px;border-radius:50%;
+    border:none;background:rgba(255,255,255,.2);color:#fff;font-size:22px;cursor:pointer;
+    display:grid;place-items:center;
+  }
+  @media (prefers-reduced-motion:reduce){.pop.show .pop-img{animation:none;}}
 </style>
 </head>
 <body>
   <img class="compare" src="img/compare.png" alt="추구미 vs 도달가능미">
 
+  <!-- 탭 영역 -->
+  <button class="zone zone-prev" type="button" aria-label="이전"></button>
+  <button class="zone zone-center" type="button" aria-label="변우석 비교 보기"></button>
+  <button class="zone zone-next" type="button" aria-label="다음"></button>
+
+  <!-- 변우석 비교사진 팝업 -->
+  <div class="pop" id="pop" aria-hidden="true">
+    <button class="pop-close" type="button" aria-label="닫기">✕</button>
+    <img class="pop-img" src="img/byeon.png" alt="변우석 비교사진">
+  </div>
+
 <script>
-/* 옆을 터치(탭)하면 넘어감 — 좌 26% 이전 / 우 74% 다음 (스토리와 동일) */
 (function(){
   const PREV='../find/', NEXT='../mood/';
-  window.addEventListener('click',e=>{
-    location.href = (e.clientX < window.innerWidth*0.26) ? PREV : NEXT;
-  });
+  const pop=document.getElementById('pop');
+  const open=()=>pop.classList.add('show');
+  const close=()=>pop.classList.remove('show');
+
+  document.querySelector('.zone-prev').addEventListener('click',()=>location.href=PREV);
+  document.querySelector('.zone-next').addEventListener('click',()=>location.href=NEXT);
+  document.querySelector('.zone-center').addEventListener('click',open);   /* 가운데 = 변우석 팝업 */
+  pop.addEventListener('click',close);                                     /* 팝업 아무 곳이나 탭 = 닫기 */
+
   window.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){ close(); return; }
+    if(pop.classList.contains('show')) return;
     if(e.key==='ArrowRight'||e.key===' ') location.href=NEXT;
     else if(e.key==='ArrowLeft') location.href=PREV;
   });

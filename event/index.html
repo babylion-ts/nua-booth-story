@@ -123,6 +123,16 @@
     .field > label{display:block;font-size:14px;font-weight:600;color:var(--ink-soft);margin-bottom:8px;}
     .req{color:var(--strike);font-weight:700;}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .row--wide{grid-template-columns:1.7fr 1fr;}   /* 이름·연락처 넓게 / 나이·지역 좁게 */
+    /* 희망 시간대 칩 (중복 선택) */
+    .field .hint{font-size:12px;font-weight:500;color:var(--label);margin-left:4px;}
+    .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+    .chip{position:relative;display:block;}
+    .chip input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;}
+    .chip span{display:block;padding:12px 4px;text-align:center;font-size:15px;font-weight:600;
+      color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:10px;
+      transition:background 120ms var(--ease),color 120ms var(--ease),border-color 120ms var(--ease);}
+    .chip input:checked + span{background:var(--ink);color:#fff;border-color:var(--ink);}
     input,select{
       width:100%;font-family:var(--font);font-size:16px;color:var(--ink);background:#fff;
       border:1.5px solid var(--line);border-radius:12px;padding:14px;
@@ -205,67 +215,50 @@
       <p class="form-sub">아래 정보를 남겨주시면 순서대로 연락드릴게요.</p>
 
       <form id="applyForm" novalidate>
-        <div class="field">
-          <label for="name">이름 <span class="req">*</span></label>
-          <input id="name" name="name" type="text" placeholder="이름" required autocomplete="name">
-        </div>
-
-        <div class="row">
+        <div class="row row--wide">
+          <div class="field">
+            <label for="name">이름 <span class="req">*</span></label>
+            <input id="name" name="name" type="text" placeholder="이름" required autocomplete="name">
+          </div>
           <div class="field">
             <label for="age">나이</label>
             <input id="age" name="age" type="number" inputmode="numeric" min="1" max="120" placeholder="나이">
           </div>
+        </div>
+
+        <div class="row row--wide">
           <div class="field">
-            <label for="gender">성별</label>
-            <select id="gender" name="gender">
-              <option value="" selected>선택</option>
-              <option value="female">여성</option>
-              <option value="male">남성</option>
-              <option value="none">선택 안 함</option>
-            </select>
+            <label for="phone">연락처 <span class="req">*</span></label>
+            <input id="phone" name="phone" type="tel" inputmode="tel" placeholder="010-0000-0000" required autocomplete="tel">
+          </div>
+          <div class="field">
+            <label for="region">지역 <span class="req">*</span></label>
+            <input id="region" name="region" type="text" placeholder="예) 강남역" required>
           </div>
         </div>
 
         <div class="field">
-          <label for="phone">연락처 <span class="req">*</span></label>
-          <input id="phone" name="phone" type="tel" inputmode="tel" placeholder="010-0000-0000" required autocomplete="tel">
-        </div>
-
-        <div class="field">
-          <label for="region">지역 <span class="req">*</span></label>
-          <input id="region" name="region" type="text" placeholder="예) 서울 강남" required>
-        </div>
-
-        <div class="field">
-          <label for="program">프로그램 <span class="req">*</span></label>
-          <select id="program" name="program" required>
-            <option value="" selected disabled>선택</option>
-            <option value="personal-color">퍼스널컬러</option>
-            <option value="body-type">골격진단</option>
-            <option value="undecided">상담 후 결정</option>
-          </select>
-        </div>
-
-        <div class="row">
-          <div class="field">
-            <label for="date">희망 일시 <span class="req">*</span></label>
-            <input id="date" name="date" type="date" required>
-          </div>
-          <div class="field">
-            <label for="time">희망 시간대</label>
-            <select id="time" name="time">
-              <option value="" selected>선택</option>
-              <option value="morning">오전</option>
-              <option value="afternoon">오후</option>
-              <option value="evening">저녁</option>
-            </select>
+          <label>희망 시간대 <span class="hint">(중복 선택 가능)</span></label>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" name="time" value="11:00"><span>11:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="12:00"><span>12:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="13:00"><span>13:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="14:00"><span>14:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="15:00"><span>15:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="16:00"><span>16:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="17:00"><span>17:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="18:00"><span>18:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="19:00"><span>19:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="20:00"><span>20:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="21:00"><span>21:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="22:00"><span>22:00</span></label>
           </div>
         </div>
 
         <label class="consent">
           <input type="checkbox" id="consent" name="consent" required>
           <span>개인정보 수집·이용에 동의합니다. (필수)<br>
-          수집 항목: 이름·나이·연락처·지역·성별·프로그램·희망 일시 / 목적: 이벤트 진행 및 예약 안내 / 보유: 이벤트 종료 후 파기</span>
+          이벤트 예약 안내에만 사용하며, 종료 후 파기합니다.</span>
         </label>
 
         <button class="submit" type="submit" id="submitBtn" disabled>신청 완료하기</button>
@@ -307,7 +300,9 @@
       e.preventDefault();
       if (!form.checkValidity()) { form.reportValidity(); return; }
 
-      const payload = Object.fromEntries(new FormData(form).entries());
+      const fd = new FormData(form);
+      const payload = Object.fromEntries(fd.entries());
+      payload.time = fd.getAll('time');                 // 희망 시간대(중복 선택) 배열로
       submitBtn.disabled = true;
       submitBtn.textContent = '신청 중…';
 

@@ -7,32 +7,37 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;height:100%;}
+  html,body{margin:0;padding:0;}
   body{
-    font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;background:#f3f3f4;
-    -webkit-font-smoothing:antialiased;overscroll-behavior:none;
+    font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;background:#f6f6f6;
+    -webkit-font-smoothing:antialiased;
     user-select:none;-webkit-user-select:none;
-    min-height:100dvh;display:flex;align-items:center;justify-content:center;overflow:hidden;
+    overscroll-behavior-y:none;                 /* 위/아래 바운스 방지 */
   }
-  /* 스토리 페이지와 동일: 3:4 이미지를 화면에 꽉 채워 중앙 배치 (레터박스는 배경과 블렌드) */
-  .full{
-    width:min(100vw, calc(100dvh * 3 / 4));
-    height:auto;display:block;-webkit-user-drag:none;user-drag:none;
-  }
+  /* 13 · 14 를 크게 세로로 쌓기 (축소 없이, 넘치면 스크롤) */
+  .stack{max-width:900px;margin:0 auto;}
+  .stack img{display:block;width:100%;height:auto;-webkit-user-drag:none;user-drag:none;}
 </style>
 </head>
 <body>
-  <img class="full" src="img/mood.png" alt="Mood Reading & Mood Styling">
+  <div class="stack">
+    <img src="img/13.png" alt="Mood Reading">
+    <img src="img/14.png" alt="Reviews · Mood Styling">
+  </div>
 
 <script>
-/* 옆을 터치(탭)하면 넘어감 — 좌 26% 이전 / 우 74% 다음 (스토리와 동일) */
+/* 좌 25% 이전(compare) · 우 25% 다음(event) · 가운데는 그냥 읽기(세로 스크롤).
+   드래그(스크롤)는 넘김이 아니라 스크롤로 동작. */
 (function(){
   const PREV='../compare/', NEXT='../event/';
   window.addEventListener('click',e=>{
-    location.href = (e.clientX < window.innerWidth*0.26) ? PREV : NEXT;
+    const x=e.clientX/window.innerWidth;
+    if(x<0.25) location.href=PREV;
+    else if(x>0.75) location.href=NEXT;
+    /* 가운데(0.25~0.75)는 아무 동작 없음 → 편하게 스크롤/읽기 */
   });
   window.addEventListener('keydown',e=>{
-    if(e.key==='ArrowRight'||e.key===' ') location.href=NEXT;
+    if(e.key==='ArrowRight') location.href=NEXT;
     else if(e.key==='ArrowLeft') location.href=PREV;
   });
 })();
