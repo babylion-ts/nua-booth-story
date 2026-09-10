@@ -1,0 +1,11 @@
+[
+  { "src": "pages/01-hooking.png", "label": "후킹 — 패션의 완성은 ___이다" },
+  {
+    "src": "pages/02-fashion.png",
+    "label": "NUA image branding",
+    "hotspots": [
+      { "id": "reading", "x": 36, "y": 18.5, "w": 28, "h": 16, "action": "openOverlay:reading" },
+      { "id": "styling", "x": 36, "y": 67.5, "w": 28, "h": 16, "action": "openOverlay:styling" }
+    ]
+  }
+]

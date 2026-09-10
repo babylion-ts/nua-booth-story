@@ -1,0 +1,33 @@
+/* 디자인 시스템: Nuaa iOS 26 — 셸에서 실제로 쓰는 값만 추림 (README: Design Tokens). */
+:root {
+  /* 라벨 */
+  --labels-primary: rgb(0, 0, 0);            /* 진행바 채움 / 텍스트 최상위 */
+  --labels-secondary: rgba(60, 60, 67, 0.6); /* 보조 텍스트 */
+  --labels-tertiary: rgba(60, 60, 67, 0.3);  /* 힌트·카운터·셰브론 */
+
+  /* 필 / 배경 / 구분선 */
+  --fills-tertiary: rgba(118, 118, 128, 0.12);   /* 진행바 트랙 */
+  --backgrounds-secondary: rgb(242, 242, 247);   /* 프리뷰 배경(데스크톱) */
+  --page-bg: #f4f4f4;                            /* 페이지 배경(아트워크 내부) */
+  --separators-non-opaque: rgba(0, 0, 0, 0.12);
+
+  /* 포인트 */
+  --accents-blue: rgb(0, 136, 255);
+  --accents-orange: rgb(255, 141, 40);
+
+  /* 타이포: SF Pro / -apple-system 폴백 */
+  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro",
+    "Helvetica Neue", "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
+
+  /* 이징 (진행바만 200ms, 그 외 120–200ms) */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 라운드 */
+  --radius-capsule: 500px;
+  --radius-thumb: 6px;
+  --radius-sheet: 34px;
+  --radius-frame: 38px;
+
+  /* 시트 섀도 — 이것 하나만 사용 */
+  --shadow-sheet: 0 -1px 40px rgba(0, 0, 0, 0.18);
+}

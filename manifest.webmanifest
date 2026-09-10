@@ -1,0 +1,12 @@
+{
+  "name": "NUA 부스 태블릿 스토리",
+  "short_name": "NUA",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "start_url": "./?mode=kiosk",
+  "icons": [
+    { "src": "pages/02-fashion.png", "sizes": "864x1152", "type": "image/png", "purpose": "any" }
+  ]
+}
