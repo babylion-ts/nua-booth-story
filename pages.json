@@ -1,5 +1,9 @@
 [
-  { "src": "pages/01-hooking.png", "label": "후킹 — 패션의 완성은 ___이다" },
+  {
+    "src": "pages/01-hooking.png",
+    "label": "후킹 — 패션의 완성은 ___이다",
+    "reveal": { "src": "pages/01-hooking-answer.png", "x": 5, "y": 41, "w": 58, "h": 16 }
+  },
   {
     "src": "pages/02-fashion.png",
     "label": "NUA image branding",

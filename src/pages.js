@@ -34,5 +34,6 @@ export async function loadPages() {
     // bottomSafe 미지정이면 true (안전측: 하단 행 표시). false 일 때만 숨긴다.
     bottomSafe: p.bottomSafe !== false,
     hotspots: Array.isArray(p.hotspots) ? p.hotspots : [],
+    reveal: p.reveal || null,   // 빈칸 정답 노출용 (선택)
   }));
 }

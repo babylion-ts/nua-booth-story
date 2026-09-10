@@ -41,7 +41,31 @@ export function createStage(mount, store, deps) {
   // 히트영역은 현재 페이지가 바뀔 때마다 다시 그린다.
   function renderHotspots(index) {
     hotspotWrap.replaceChildren();
-    const list = pages[index].hotspots || [];
+    const page = pages[index];
+
+    // reveal: 빈칸 탭 → 정답 이미지로 토글 (페이지 진입 시 원본으로 리셋)
+    if (page.reveal) {
+      const orig = deps.src(page.src);
+      const answer = deps.src(page.reveal.src);
+      new Image().src = answer;                       // 미리 로드 (탭 시 깜빡임 방지)
+      layers[index].style.backgroundImage = `url("${orig}")`;
+      let shown = false;
+      const rb = document.createElement('button');
+      rb.type = 'button';
+      rb.className = 'hotspot';
+      rb.setAttribute('aria-label', '정답 보기');
+      rb.style.left = `${page.reveal.x}%`;
+      rb.style.top = `${page.reveal.y}%`;
+      rb.style.width = `${page.reveal.w}%`;
+      rb.style.height = `${page.reveal.h}%`;
+      rb.addEventListener('click', () => {
+        shown = !shown;
+        layers[index].style.backgroundImage = `url("${shown ? answer : orig}")`;
+      });
+      hotspotWrap.appendChild(rb);
+    }
+
+    const list = page.hotspots || [];
     for (const h of list) {
       const btn = document.createElement('button');
       btn.type = 'button';

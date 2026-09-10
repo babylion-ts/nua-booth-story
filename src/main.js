@@ -1,8 +1,8 @@
 // 부트스트랩: pages.json 로드 → store 생성 → stage 렌더 → 키오스크 운영 설치.
 
-import { loadPages } from './pages.js';
+import { loadPages } from './pages.js?v=2';
 import { createStore } from './store.js';
-import { createStage } from './ui/stage.js';
+import { createStage } from './ui/stage.js?v=2';
 import { createOverlaySheet } from './ui/overlaySheet.js';
 import {
   installIdleReset,
