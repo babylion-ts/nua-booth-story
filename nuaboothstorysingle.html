@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>NUA 부스 스토리</title>
+
+<!-- iOS: 홈 화면에 추가 → 브라우저 UI 숨김 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NUA">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<!-- 스토리 이미지 속 글자 교체(patch)용 — 원본 PNG와 같은 폰트 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700&display=block">
+
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   NUA 부스 스토리 — 단일 파일 버전
+   화면 5개(story / find / compare / mood / event)를 해시 라우팅으로 전환.
+   ─ 원래 파일 대응 ─
+   #view-story   ← index.html + styles/*.css + src/*.js
+   #view-find    ← find/index.html
+   #view-compare ← compare/index.html
+   #view-mood    ← mood/index.html
+   #view-event   ← event/index.html
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 디자인 토큰 (구 styles/tokens.css) ───────────────────────── */
+:root {
+  --labels-primary: rgb(0, 0, 0);
+  --labels-secondary: rgba(60, 60, 67, 0.6);
+  --labels-tertiary: rgba(60, 60, 67, 0.3);
+
+  --fills-tertiary: rgba(118, 118, 128, 0.12);
+  --backgrounds-secondary: rgb(242, 242, 247);
+  --page-bg: #f4f4f4;
+  --separators-non-opaque: rgba(0, 0, 0, 0.12);
+
+  --accents-blue: rgb(0, 136, 255);
+  --accents-orange: rgb(255, 141, 40);
+
+  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro",
+    "Helvetica Neue", "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
+  --font-kr: 'Pretendard', 'Pretendard Variable', -apple-system, BlinkMacSystemFont,
+    'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --radius-capsule: 500px;
+  --radius-thumb: 6px;
+  --radius-sheet: 34px;
+  --radius-frame: 38px;
+
+  --shadow-sheet: 0 -1px 40px rgba(0, 0, 0, 0.18);
+}
+
+/* ── 전역 ─────────────────────────────────────────────────────── */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-system);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  color: var(--labels-primary);
+}
+img { -webkit-user-drag: none; user-drag: none; }
+
+/* ── 뷰 전환 ──────────────────────────────────────────────────── */
+.view { display: none; }
+
+/* story / find / compare = 스크롤 없는 고정 화면 */
+body[data-view="story"],
+body[data-view="find"],
+body[data-view="compare"] {
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+body[data-view="story"].is-preview { background: var(--backgrounds-secondary); }
+body[data-view="story"].is-kiosk   { background: #000; }
+body[data-view="find"]    { background: #fff; }
+body[data-view="compare"] { background: #f6f6f6; }
+body[data-view="mood"]    { background: #f6f6f6; user-select: none; -webkit-user-select: none; }
+body[data-view="event"]   { background: #f3f3f4; }
+
+/* ═══════════════ 1. STORY ═══════════════ */
+#view-story { min-height: 100dvh; }
+body.is-preview #view-story.is-active {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 18px; padding: 24px;
+}
+body.is-kiosk #view-story.is-active {
+  display: grid; position: fixed; inset: 0; place-items: center;
+}
+
+.stage-mount { display: contents; }
+
+.stage {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: var(--page-bg);
+  container-type: inline-size;
+  --u: calc(100cqw / 432);
+}
+body.is-preview .stage {
+  width: min(100%, calc((100dvh - 190px) * 0.75));
+  border-radius: var(--radius-frame);
+  box-shadow: var(--shadow-sheet);
+}
+body.is-kiosk .stage {
+  width: min(100vw, calc(100dvh * 3 / 4));
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.layers { position: absolute; inset: 0; z-index: 0; }
+.layer {
+  position: absolute; inset: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 160ms var(--ease);
+  will-change: opacity;
+}
+.layer__patch { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.hotspots { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.hotspot {
+  position: absolute; pointer-events: auto;
+  min-width: calc(var(--u) * 44);
+  min-height: calc(var(--u) * 44);
+  padding: 0; border: 0; background: transparent; cursor: pointer;
+}
+
+.tapzone {
+  position: absolute; top: 0; bottom: 0; z-index: 1;
+  padding: 0; margin: 0; border: 0; background: transparent; cursor: pointer;
+}
+.tapzone--left  { left: 0;  width: 26%; }
+.tapzone--right { right: 0; width: 74%; }
+.tapzone:active:not(:disabled) { background: rgba(0, 0, 0, 0.03); }
+.tapzone:disabled { cursor: default; }
+@media (hover: hover) {
+  body.is-preview .tapzone:hover:not(:disabled) { opacity: 0.7; }
+}
+
+.preview-header { display: flex; align-items: baseline; gap: 10px; justify-content: center; }
+.preview-header__title {
+  font-size: 13px; font-weight: 590; letter-spacing: -0.08px; color: var(--labels-secondary);
+}
+.preview-header__meta {
+  font-size: 13px; color: var(--labels-tertiary); font-variant-numeric: tabular-nums;
+}
+
+.rail {
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  max-width: min(100%, 860px);
+}
+.rail__item {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 52px; padding: 0; border: 0; background: transparent; cursor: pointer;
+}
+@media (hover: hover) { .rail__item:hover { opacity: 0.7; } }
+.rail__thumb {
+  width: 52px; aspect-ratio: 3 / 4;
+  border-radius: var(--radius-thumb);
+  background-color: var(--page-bg);
+  background-position: center; background-size: cover;
+  box-shadow: 0 0 0 1px var(--separators-non-opaque);
+}
+.rail__item.is-active .rail__thumb { box-shadow: 0 0 0 2px var(--labels-primary); }
+.rail__num {
+  font-size: 11px; line-height: 13px; font-weight: 510;
+  color: var(--labels-tertiary); font-variant-numeric: tabular-nums;
+}
+
+/* 오버레이 바텀 시트 */
+.overlay {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+}
+.overlay__backdrop {
+  position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4);
+  opacity: 0; transition: opacity 300ms var(--ease);
+}
+.overlay.is-open .overlay__backdrop { opacity: 1; }
+.overlay__sheet {
+  position: relative; width: min(100%, 560px); max-height: 92dvh;
+  display: flex; flex-direction: column; background: #fff;
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  box-shadow: var(--shadow-sheet);
+  transform: translateY(100%);
+  transition: transform 300ms var(--ease);
+  overflow: hidden;
+}
+.overlay.is-open .overlay__sheet { transform: translateY(0); }
+.overlay__bar {
+  position: relative; flex: none; display: flex; align-items: center; gap: 12px;
+  padding: 20px 16px 12px; border-bottom: 1px solid var(--separators-non-opaque);
+}
+.overlay__grabber {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  width: 36px; height: 5px; border-radius: var(--radius-capsule); background: var(--fills-tertiary);
+}
+.overlay__title {
+  flex: 1; font-size: 15px; font-weight: 590; letter-spacing: -0.2px;
+  color: var(--labels-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.overlay__close {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px;
+  padding: 0; border: 0; border-radius: 50%;
+  background: var(--fills-tertiary); color: var(--labels-secondary);
+  font-size: 18px; cursor: pointer;
+}
+@media (hover: hover) { .overlay__close:hover { opacity: 0.7; } }
+.overlay__scroll {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  touch-action: pan-y; overscroll-behavior: contain; background: #fff;
+}
+.overlay__img { display: block; width: 100%; height: auto; }
+
+.error { color: var(--labels-secondary); text-align: center; padding: 40px; line-height: 1.5; }
+
+/* ═══════════════ 2. FIND (find your best style) ═══════════════ */
+#view-find.is-active { display: block; }
+#view-find {
+  --ink: #111111;
+  --orange: #ff5a1f;
+  --tab-active: #333333;
+  --line: #111111;
+  font-family: var(--font-kr);
+  color: var(--ink);
+  line-height: 1.5;
+}
+#view-find img { display: block; max-width: 100%; }
+#view-find .wrap {
+  max-width: 820px; margin: 0 auto; padding: 20px 24px; position: relative;
+  height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
+}
+#view-find .back, #view-event .back {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; margin: 0 0 8px -8px; border-radius: 50%;
+  text-decoration: none; transition: background 120ms var(--ease);
+  border: 0; background: transparent; cursor: pointer; padding: 0;
+}
+#view-find .back:hover, #view-event .back:hover { background: rgba(0, 0, 0, .05); }
+
+#view-find .headline {
+  font-size: 40px; line-height: 1.08; font-weight: 800;
+  letter-spacing: -1px; margin: 2px 0 18px;
+}
+#view-find .headline .best { color: var(--orange); }
+
+#view-find .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; flex: none; }
+#view-find .tab {
+  padding: 15px 0; border: 1.5px solid var(--ink); background: #fff; border-radius: 6px;
+  font-family: var(--font-kr); font-size: 19px; font-weight: 700; color: var(--ink); cursor: pointer;
+  transition: background 140ms var(--ease), color 140ms var(--ease);
+}
+#view-find .tab.active { background: var(--tab-active); color: #fff; border-color: var(--tab-active); }
+
+#view-find .grid {
+  flex: 1 1 auto; min-height: 0; display: grid;
+  grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 16px;
+}
+#view-find .cell {
+  cursor: zoom-in; border: 1.5px solid var(--line); border-radius: 4px; overflow: hidden;
+  background: #fff; min-height: 0; transition: transform .14s var(--ease);
+}
+#view-find .cell:active { transform: scale(.97); }
+#view-find .cell img {
+  width: 100%; height: 100%; object-fit: cover; object-position: top center; pointer-events: none;
+}
+
+/* 확대 뷰어 */
+#view-find .zoom { position: fixed; inset: 0; background: rgba(17,17,17,.95); display: none; z-index: 70; touch-action: none; }
+#view-find .zoom.show { display: block; }
+#view-find .zoom-stage { position: absolute; inset: 0; overflow: hidden; }
+#view-find .zoom img {
+  position: absolute; top: 50%; left: 50%; transform-origin: center center; will-change: transform;
+  user-select: none; max-width: none; background: #fff; border-radius: 6px;
+}
+#view-find .zoom-close {
+  position: absolute; top: 14px; right: 16px; z-index: 2; background: rgba(255,255,255,.16);
+  border: none; color: #fff; width: 46px; height: 46px; border-radius: 50%; font-size: 22px; cursor: pointer;
+}
+#view-find .zoom-count {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,.85);
+  font-size: 14px; font-weight: 600; letter-spacing: .04em; z-index: 2; font-variant-numeric: tabular-nums;
+}
+#view-find .zoom-hint {
+  position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,.7); font-size: 12px; letter-spacing: .04em; z-index: 2;
+}
+#view-find .pv-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; background: rgba(255,255,255,.16);
+  border: none; color: #fff; width: 48px; height: 48px; border-radius: 50%; font-size: 26px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+#view-find .pv-prev { left: 14px; }
+#view-find .pv-next { right: 14px; }
+
+/* ═══════════════ 3. COMPARE (추구미 vs 도달가능미) ═══════════════ */
+#view-compare.is-active {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100dvh; overflow: hidden;
+}
+#view-compare { font-family: var(--font-kr); }
+#view-compare .compare {
+  width: min(100vw, calc(100dvh * 3 / 4));
+  height: auto; display: block;
+}
+#view-compare .zone {
+  position: fixed; top: 0; bottom: 0; z-index: 10;
+  border: none; background: transparent; padding: 0; margin: 0; cursor: pointer;
+}
+#view-compare .zone-prev { left: 0; width: 25%; }
+#view-compare .zone-center { left: 25%; width: 50%; }
+#view-compare .zone-next { right: 0; width: 25%; }
+
+#view-compare .pop {
+  position: fixed; inset: 0; z-index: 50; display: none;
+  align-items: center; justify-content: center; padding: 24px;
+  background: rgba(17,17,17,.72); cursor: pointer;
+}
+#view-compare .pop.show { display: flex; }
+#view-compare .pop-img {
+  max-width: 94vw; max-height: 82dvh; width: auto; height: auto;
+  border-radius: 12px; background: #fff; box-shadow: 0 24px 70px rgba(0,0,0,.45);
+}
+#view-compare .pop.show .pop-img { animation: popIn .22s var(--ease); }
+@keyframes popIn { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+#view-compare .pop-close {
+  position: absolute; top: 16px; right: 18px; width: 46px; height: 46px; border-radius: 50%;
+  border: none; background: rgba(255,255,255,.2); color: #fff; font-size: 22px; cursor: pointer;
+  display: grid; place-items: center;
+}
+@media (prefers-reduced-motion: reduce) { #view-compare .pop.show .pop-img { animation: none; } }
+
+/* ═══════════════ 4. MOOD ═══════════════ */
+#view-mood.is-active { display: block; }
+#view-mood { font-family: var(--font-kr); }
+#view-mood .stack { max-width: 900px; margin: 0 auto; }
+#view-mood .stack img { display: block; width: 100%; height: auto; }
+
+/* ═══════════════ 5. EVENT (이벤트 신청) ═══════════════ */
+#view-event.is-active { display: flex; justify-content: center; padding: 40px 20px 56px; }
+#view-event {
+  --card: #ffffff;
+  --ink: #141414;
+  --ink-soft: #2a2a2a;
+  --label: #8a8a8e;
+  --line: #e6e6e8;
+  --strike: #2e6ff2;
+  --free-bg: #141414;
+  --free-ink: #ffffff;
+  font-family: var(--font-kr);
+  color: var(--ink);
+  width: 100%;
+}
+#view-event .page { width: 100%; max-width: 440px; }
+#view-event .headline {
+  font-size: 44px; line-height: 1.16; font-weight: 800; letter-spacing: -1.2px; margin: 4px 0 28px;
+}
+#view-event .card {
+  background: var(--card); border-radius: 22px; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 12px 32px rgba(0,0,0,.06);
+}
+#view-event .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--card); }
+#view-event .hero img { display: block; width: 100%; height: 210px; object-fit: cover; }
+#view-event .panel { padding: 24px 22px 26px; }
+#view-event .eyebrow {
+  font-size: 13px; font-weight: 600; letter-spacing: 1.5px; color: var(--label); margin: 2px 0 18px;
+}
+#view-event .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 15px; }
+#view-event .list li { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 600; color: var(--ink-soft); }
+#view-event .check { flex: none; width: 22px; height: 22px; }
+#view-event .check svg { display: block; width: 100%; height: 100%; }
+#view-event .divider { height: 1px; background: var(--line); margin: 24px 0 20px; }
+#view-event .price { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+#view-event .price .label { font-size: 15px; font-weight: 600; color: var(--label); }
+#view-event .price .original { position: relative; font-size: 26px; font-weight: 700; color: var(--ink); }
+#view-event .price .original::after {
+  content: ""; position: absolute; left: -2px; right: -2px; top: 52%; height: 2.5px;
+  background: var(--strike); transform: rotate(-8deg); border-radius: 2px;
+}
+#view-event .price .arrow { font-size: 22px; font-weight: 800; color: var(--ink); }
+#view-event .free {
+  display: inline-flex; align-items: center; background: var(--free-bg); color: var(--free-ink);
+  font-size: 20px; font-weight: 800; letter-spacing: .5px; padding: 8px 20px; border-radius: 999px;
+}
+#view-event .cta {
+  display: block; width: 100%; margin-top: 26px;
+  background: var(--card); color: var(--ink); border: 2px solid var(--ink); border-radius: 16px;
+  padding: 20px; font-family: var(--font-kr); font-size: 21px; font-weight: 800; letter-spacing: -.5px;
+  cursor: pointer; transition: opacity 120ms var(--ease);
+}
+#view-event .cta:hover { opacity: .65; }
+#view-event .cta:active { opacity: .5; }
+
+#view-event .form-card {
+  margin-top: 14px; background: var(--card); border-radius: 22px; padding: 28px 22px 26px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 12px 32px rgba(0,0,0,.06);
+}
+#view-event .form-card h2 { font-size: 24px; font-weight: 800; letter-spacing: -.6px; margin: 0 0 6px; }
+#view-event .form-sub { font-size: 14px; color: var(--label); margin: 0 0 24px; line-height: 1.5; }
+#view-event .field { margin-bottom: 16px; }
+#view-event .field > label { display: block; font-size: 14px; font-weight: 600; color: var(--ink-soft); margin-bottom: 8px; }
+#view-event .req { color: var(--strike); font-weight: 700; }
+#view-event .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+#view-event .row--wide { grid-template-columns: 1.7fr 1fr; }
+#view-event .field .hint { font-size: 12px; font-weight: 500; color: var(--label); margin-left: 4px; }
+#view-event .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+#view-event .chip { position: relative; display: block; }
+#view-event .chip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+#view-event .chip span {
+  display: block; padding: 12px 4px; text-align: center; font-size: 15px; font-weight: 600;
+  color: var(--ink); background: #fff; border: 1.5px solid var(--line); border-radius: 10px;
+  transition: background 120ms var(--ease), color 120ms var(--ease), border-color 120ms var(--ease);
+}
+#view-event .chip input:checked + span { background: var(--ink); color: #fff; border-color: var(--ink); }
+#view-event input, #view-event select {
+  width: 100%; font-family: var(--font-kr); font-size: 16px; color: var(--ink); background: #fff;
+  border: 1.5px solid var(--line); border-radius: 12px; padding: 14px;
+  -webkit-appearance: none; appearance: none; transition: border-color 120ms var(--ease);
+}
+#view-event input::placeholder { color: #b8b8bc; }
+#view-event input:focus, #view-event select:focus { outline: none; border-color: var(--ink); }
+#view-event .consent {
+  display: flex; gap: 10px; align-items: flex-start; margin: 8px 0 22px;
+  font-size: 13px; color: var(--label); line-height: 1.55;
+}
+#view-event .consent input {
+  -webkit-appearance: auto; appearance: auto; width: 20px; height: 20px; flex: none;
+  margin: 1px 0 0; padding: 0; border: 0; border-radius: 0; accent-color: var(--ink); cursor: pointer;
+}
+#view-event .submit {
+  width: 100%; background: var(--ink); color: #fff; border: 0; border-radius: 16px; padding: 20px;
+  font-family: var(--font-kr); font-size: 21px; font-weight: 800; letter-spacing: -.5px;
+  cursor: pointer; transition: opacity 120ms var(--ease);
+}
+#view-event .submit:hover { opacity: .85; }
+#view-event .submit:disabled { opacity: .35; cursor: default; }
+
+#view-event .done {
+  margin-top: 14px; background: var(--card); border-radius: 22px; padding: 48px 24px; text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 12px 32px rgba(0,0,0,.06);
+}
+#view-event .done .badge {
+  width: 64px; height: 64px; margin: 0 auto 18px; border-radius: 50%; background: var(--ink);
+  display: grid; place-items: center;
+}
+#view-event .done .badge svg { width: 34px; height: 34px; }
+#view-event .done h2 { font-size: 24px; font-weight: 800; letter-spacing: -.6px; margin: 0 0 8px; }
+#view-event .done p { font-size: 15px; color: var(--label); line-height: 1.6; margin: 0; }
+#view-event .home-btn {
+  display: inline-block; margin-top: 24px; padding: 14px 30px;
+  border: 2px solid var(--ink); border-radius: 14px;
+  color: var(--ink); text-decoration: none; font-weight: 700; font-size: 16px;
+  transition: opacity 120ms var(--ease); cursor: pointer; background: transparent;
+  font-family: var(--font-kr);
+}
+#view-event .home-btn:hover { opacity: .65; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+  <!-- ═══ 1. STORY ═══ (내용은 JS가 렌더) -->
+  <section class="view" id="view-story"></section>
+
+  <!-- ═══ 2. FIND ═══ -->
+  <section class="view" id="view-find">
+    <div class="wrap">
+      <button class="back" data-go="story" type="button" aria-label="돌아가기">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+
+      <h1 class="headline">find your <span class="best">best</span> style</h1>
+
+      <div class="tabs">
+        <button class="tab active" data-g="women" type="button">여성</button>
+        <button class="tab" data-g="men" type="button">남성</button>
+      </div>
+
+      <div class="grid" id="findGrid"></div>
+    </div>
+
+    <div class="zoom" id="findZoom">
+      <button class="zoom-close" id="findZoomClose" type="button" aria-label="닫기">✕</button>
+      <div class="zoom-count" id="findZoomCount"></div>
+      <button class="pv-nav pv-prev" id="findPrev" type="button" aria-label="이전">‹</button>
+      <button class="pv-nav pv-next" id="findNext" type="button" aria-label="다음">›</button>
+      <div class="zoom-stage" id="findZoomStage"><img id="findZoomImg" alt="확대 이미지"></div>
+      <div class="zoom-hint">좌우로 넘기기 · 더블탭/두 손가락 확대</div>
+    </div>
+  </section>
+
+  <!-- ═══ 3. COMPARE ═══ -->
+  <section class="view" id="view-compare">
+    <img class="compare" id="compareImg" alt="추구미 vs 도달가능미">
+
+    <button class="zone zone-prev" type="button" aria-label="이전"></button>
+    <button class="zone zone-center" type="button" aria-label="변우석 비교 보기"></button>
+    <button class="zone zone-next" type="button" aria-label="다음"></button>
+
+    <div class="pop" id="comparePop" aria-hidden="true">
+      <button class="pop-close" type="button" aria-label="닫기">✕</button>
+      <img class="pop-img" id="comparePopImg" alt="변우석 비교사진">
+    </div>
+  </section>
+
+  <!-- ═══ 4. MOOD ═══ -->
+  <section class="view" id="view-mood">
+    <div class="stack">
+      <img id="moodImg1" alt="Mood Reading">
+      <img id="moodImg2" alt="Reviews · Mood Styling">
+    </div>
+  </section>
+
+  <!-- ═══ 5. EVENT ═══ -->
+  <section class="view" id="view-event">
+    <main class="page">
+      <button class="back" data-go="story" type="button" aria-label="돌아가기">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="#141414" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <h1 class="headline">나의 무드를<br>완성해보세요</h1>
+
+      <section class="card">
+        <div class="hero">
+          <img id="eventImg1" alt="퍼스널컬러">
+          <img id="eventImg2" alt="골격진단">
+        </div>
+
+        <div class="panel">
+          <p class="eyebrow">NUA image consulting</p>
+
+          <ul class="list">
+            <li><span class="check"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#141414" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>무드 리딩</li>
+            <li><span class="check"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#141414" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>퍼스널컬러 or 골격진단</li>
+            <li><span class="check"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#141414" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>스타일링 제안</li>
+            <li><span class="check"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#141414" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>결과지 PDF 제공</li>
+          </ul>
+
+          <div class="divider"></div>
+
+          <div class="price">
+            <span class="label">정가</span>
+            <span class="original">150,000</span>
+            <span class="arrow">→</span>
+            <span class="free">FREE</span>
+          </div>
+        </div>
+      </section>
+
+      <button class="cta" type="button" id="applyBtn">이벤트 신청하시겠어요?</button>
+
+      <section class="form-card" id="formCard" hidden>
+        <h2>이벤트 신청</h2>
+        <p class="form-sub">아래 정보를 남겨주시면 순서대로 연락드릴게요.</p>
+
+        <form id="applyForm" novalidate>
+          <div class="row row--wide">
+            <div class="field">
+              <label for="name">이름 <span class="req">*</span></label>
+              <input id="name" name="name" type="text" placeholder="이름" required autocomplete="name">
+            </div>
+            <div class="field">
+              <label for="age">나이</label>
+              <input id="age" name="age" type="number" inputmode="numeric" min="1" max="120" placeholder="나이">
+            </div>
+          </div>
+
+          <div class="row row--wide">
+            <div class="field">
+              <label for="phone">연락처 <span class="req">*</span></label>
+              <input id="phone" name="phone" type="tel" inputmode="tel" placeholder="010-0000-0000" required autocomplete="tel">
+            </div>
+            <div class="field">
+              <label for="region">지역 <span class="req">*</span></label>
+              <input id="region" name="region" type="text" placeholder="예) 강남역" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>희망 시간대 <span class="hint">(중복 선택 가능)</span></label>
+            <div class="chips" id="timeChips"></div>
+          </div>
+
+          <label class="consent">
+            <input type="checkbox" id="consent" name="consent" required>
+            <span>개인정보 수집·이용에 동의합니다. (필수)<br>
+            이벤트 예약 안내에만 사용하며, 종료 후 파기합니다.</span>
+          </label>
+
+          <button class="submit" type="submit" id="submitBtn" disabled>신청 완료하기</button>
+        </form>
+      </section>
+
+      <section class="done" id="doneCard" hidden>
+        <div class="badge">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h2>신청이 완료되었어요!</h2>
+        <p>남겨주신 연락처로 예약 안내를 드릴게요.<br>나의 무드, 곧 함께 완성해요.</p>
+        <button class="home-btn" data-go="story" type="button">처음으로</button>
+      </section>
+    </main>
+  </section>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   설정 — 여기 값만 바꾸면 대부분 조정됩니다.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 이미지 위치.
+   '' 로 두면 이 HTML 파일과 같은 폴더의 pages/, find/img/ ... 를 씁니다.
+   file:// 로 그냥 열었을 때는 자동으로 배포 서버 이미지를 불러옵니다. */
+var REMOTE_BASE = 'https://nua-booth-story-an19.vercel.app/';
+var IMG_BASE = (location.protocol === 'file:') ? REMOTE_BASE : '';
+function img(p) { return IMG_BASE + p; }
+
+/* 구글 시트(Apps Script 웹앱) 주소. 비워두면 localStorage 에만 저장됩니다. */
+var SHEET_URL = 'https://script.google.com/macros/s/AKfycbxALPsOtmeXP9HgYHiETKA1DHZTJ8wPRNlBYYcisfzJAnfUY6ph8ewIjjMXUWlxLXuG/exec';
+
+/* 무입력 N밀리초 후 스토리 1페이지로 리셋 (스토리 화면에서만 동작) */
+var IDLE_RESET_MS = 60000;
+
+/* ── 스토리 페이지 데이터 (구 pages.json) ────────────────────── */
+var PAGES = [
+  {
+    src: 'pages/01-hooking.png',
+    label: '후킹 — 패션의 완성은 ___이다',
+    reveal: { src: 'pages/01-hooking-answer.png', x: 5, y: 41, w: 58, h: 16 },
+    hotspots: []
+  },
+  {
+    src: 'pages/02-fashion.png',
+    label: 'NUA image consulting',
+    reveal: null,
+    /* 이미지 속 글자 교체 — 좌표는 원본 PNG(864×1152) 픽셀, y = 글자 기준선 */
+    patch: { text: 'image consulting', x: 432, y: 664, size: 52, cover: [150, 608, 564, 92], bg: '#f6f6f6' },
+    hotspots: [
+      { id: 'reading', x: 36, y: 18.5, w: 28, h: 16, action: 'openOverlay:reading' },
+      { id: 'styling', x: 36, y: 67.5, w: 28, h: 16, action: 'openOverlay:styling' }
+    ]
+  }
+];
+
+/* ── 오버레이 시트 이미지 (구 overlays.json) ─────────────────── */
+var OVERLAYS = {
+  reading: { src: 'overlays/reading.png', title: '' },
+  styling: { src: 'overlays/styling.png', title: '' }
+};
+
+/* ── find 화면 코디 사진 ─────────────────────────────────────── */
+var PEOPLE = {
+  women: [
+    'find/img/women/1.png', 'find/img/women/2.png', 'find/img/women/3.png',
+    'find/img/women/4.png', 'find/img/women/5.png', 'find/img/women/6.png'
+  ],
+  men: [
+    'find/img/men/1-minimal.png', 'find/img/men/2-vintage.png', 'find/img/men/3-street.png',
+    'find/img/men/4-amekaji.png', 'find/img/men/5-casual.png', 'find/img/men/6-formal.png'
+  ]
+};
+
+/* ── 그 외 이미지 ────────────────────────────────────────────── */
+var IMAGES = {
+  compare: 'compare/img/compare.png',
+  byeon:   'compare/img/byeon.png',
+  mood1:   'mood/img/13.png',
+  mood2:   'mood/img/14.png',
+  event1:  'event/img/personal-color.jpg',
+  event2:  'event/img/body-type.jpg'
+};
+
+/* ── 이벤트 신청 희망 시간대 ─────────────────────────────────── */
+var TIME_SLOTS = ['11:00','12:00','13:00','14:00','15:00','16:00',
+                  '17:00','18:00','19:00','20:00','21:00','22:00'];
+
+
+/* ═══════════════════════════════════════════════════════════════
+   라우팅 — #/story · #/find · #/compare · #/mood · #/event
+   ═══════════════════════════════════════════════════════════════ */
+var VIEWS = ['story', 'find', 'compare', 'mood', 'event'];
+var currentView = 'story';
+
+function go(name) { location.hash = '#/' + name; }
+
+function applyRoute() {
+  var name = location.hash.replace(/^#\/?/, '');
+  if (VIEWS.indexOf(name) === -1) name = 'story';
+  currentView = name;
+  document.body.setAttribute('data-view', name);
+  VIEWS.forEach(function (v) {
+    document.getElementById('view-' + v).classList.toggle('is-active', v === name);
+  });
+  window.scrollTo(0, 0);
+  if (name === 'story') { kickIdle(); } else { stopIdle(); }
+}
+
+/* data-go="..." 버튼은 전부 라우팅 */
+document.addEventListener('click', function (e) {
+  var t = e.target.closest ? e.target.closest('[data-go]') : null;
+  if (t) { e.preventDefault(); go(t.getAttribute('data-go')); }
+});
+window.addEventListener('hashchange', applyRoute);
+
+
+/* ═══════════════════════════════════════════════════════════════
+   STORY — store / stage / overlay sheet (구 src/*.js)
+   ═══════════════════════════════════════════════════════════════ */
+function createStore(pages) {
+  var state = { index: 0, pages: pages, overlay: null };
+  var listeners = [];
+  var onPastEnd = null;
+
+  function emit() { listeners.forEach(function (fn) { fn(state); }); }
+  function set(patch) { state = Object.assign({}, state, patch); emit(); }
+  function clamp(n) { return Math.max(0, Math.min(state.pages.length - 1, n)); }
+
+  return {
+    get: function () { return state; },
+    subscribe: function (fn) { listeners.push(fn); fn(state); },
+    setOnPastEnd: function (fn) { onPastEnd = fn; },
+    next: function () {
+      if (state.overlay) return;
+      if (state.index >= state.pages.length - 1) { if (onPastEnd) onPastEnd(); return; }
+      set({ index: state.index + 1 });
+    },
+    prev: function () { if (state.overlay) return; set({ index: clamp(state.index - 1) }); },
+    goTo: function (n) { set({ index: clamp(n) }); },
+    reset: function () { set({ index: 0, overlay: null }); },
+    openOverlay: function (id) { set({ overlay: id }); },
+    closeOverlay: function () { set({ overlay: null }); }
+  };
+}
+
+var store = createStore(PAGES);
+store.setOnPastEnd(function () { go('find'); });
+
+(function buildStory() {
+  var root = document.getElementById('view-story');
+  var kiosk = isKioskMode();
+  document.body.classList.toggle('is-kiosk', kiosk);
+  document.body.classList.toggle('is-preview', !kiosk);
+
+  /* 프리뷰 헤더 */
+  if (!kiosk) {
+    var header = document.createElement('div');
+    header.className = 'preview-header';
+    header.innerHTML =
+      '<span class="preview-header__title">NUA · 부스 태블릿 스토리</span>' +
+      '<span class="preview-header__meta">세로 3:4 · ' + PAGES.length + '장</span>';
+    root.appendChild(header);
+  }
+
+  /* 스테이지 */
+  var stageMount = document.createElement('div');
+  stageMount.className = 'stage-mount';
+  root.appendChild(stageMount);
+
+  var stage = document.createElement('div');
+  stage.className = 'stage';
+
+  var layerWrap = document.createElement('div');
+  layerWrap.className = 'layers';
+  var layers = PAGES.map(function (p) {
+    var layer = document.createElement('div');
+    layer.className = 'layer';
+    layer.style.backgroundImage = 'url("' + img(p.src) + '")';
+    layer.setAttribute('role', 'img');
+    layer.setAttribute('aria-label', p.label);
+    /* patch: 배경색 사각형으로 원래 글자를 덮고 새 글자를 얹음 */
+    if (p.patch) {
+      var t = p.patch;
+      layer.innerHTML =
+        '<svg class="layer__patch" viewBox="0 0 864 1152" aria-hidden="true">' +
+          '<rect x="' + t.cover[0] + '" y="' + t.cover[1] + '" width="' + t.cover[2] + '" height="' + t.cover[3] + '" fill="' + t.bg + '"/>' +
+          '<text x="' + t.x + '" y="' + t.y + '" text-anchor="middle" font-family="\'Noto Sans KR\', sans-serif" font-weight="700" font-size="' + t.size + '" fill="#000">' + t.text + '</text>' +
+        '</svg>';
+    }
+    layerWrap.appendChild(layer);
+    return layer;
+  });
+
+  var hotspotWrap = document.createElement('div');
+  hotspotWrap.className = 'hotspots';
+
+  var tapLeft = document.createElement('button');
+  tapLeft.className = 'tapzone tapzone--left';
+  tapLeft.type = 'button';
+  tapLeft.setAttribute('aria-label', '이전 페이지');
+  tapLeft.addEventListener('click', function () { store.prev(); });
+
+  var tapRight = document.createElement('button');
+  tapRight.className = 'tapzone tapzone--right';
+  tapRight.type = 'button';
+  tapRight.setAttribute('aria-label', '다음 페이지');
+  tapRight.addEventListener('click', function () { store.next(); });
+
+  stage.appendChild(layerWrap);
+  stage.appendChild(hotspotWrap);
+  stage.appendChild(tapLeft);
+  stage.appendChild(tapRight);
+  stageMount.appendChild(stage);
+
+  function renderHotspots(index) {
+    hotspotWrap.replaceChildren();
+    var page = PAGES[index];
+
+    /* reveal: 빈칸 탭 → 정답 이미지 토글 */
+    if (page.reveal) {
+      var orig = img(page.src);
+      var answer = img(page.reveal.src);
+      new Image().src = answer;
+      layers[index].style.backgroundImage = 'url("' + orig + '")';
+      var shown = false;
+      var rb = document.createElement('button');
+      rb.type = 'button';
+      rb.className = 'hotspot';
+      rb.setAttribute('aria-label', '정답 보기');
+      rb.style.left = page.reveal.x + '%';
+      rb.style.top = page.reveal.y + '%';
+      rb.style.width = page.reveal.w + '%';
+      rb.style.height = page.reveal.h + '%';
+      rb.addEventListener('click', function () {
+        shown = !shown;
+        layers[index].style.backgroundImage = 'url("' + (shown ? answer : orig) + '")';
+      });
+      hotspotWrap.appendChild(rb);
+    }
+
+    (page.hotspots || []).forEach(function (h) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'hotspot';
+      btn.setAttribute('aria-label', h.id);
+      btn.style.left = h.x + '%';
+      btn.style.top = h.y + '%';
+      btn.style.width = h.w + '%';
+      btn.style.height = h.h + '%';
+      btn.addEventListener('click', function () {
+        if (typeof h.action === 'string' && h.action.indexOf('openOverlay:') === 0) {
+          store.openOverlay(h.action.slice('openOverlay:'.length));
+        }
+      });
+      hotspotWrap.appendChild(btn);
+    });
+  }
+
+  store.subscribe(function (state) {
+    layers.forEach(function (l, i) { l.style.opacity = (i === state.index) ? '1' : '0'; });
+    renderHotspots(state.index);
+    var locked = !!state.overlay;
+    tapLeft.disabled = locked;
+    tapRight.disabled = locked;
+  });
+
+  /* 오버레이 바텀 시트 */
+  var ov = document.createElement('div');
+  ov.className = 'overlay';
+  ov.hidden = true;
+  ov.innerHTML =
+    '<div class="overlay__backdrop"></div>' +
+    '<div class="overlay__sheet" role="dialog" aria-modal="true" aria-label="상세 보기">' +
+      '<div class="overlay__bar">' +
+        '<span class="overlay__grabber" aria-hidden="true"></span>' +
+        '<span class="overlay__title"></span>' +
+        '<button class="overlay__close" type="button" aria-label="닫기">' +
+          '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" aria-hidden="true">' +
+          '<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
+        '</button>' +
+      '</div>' +
+      '<div class="overlay__scroll"><img class="overlay__img" alt=""></div>' +
+    '</div>';
+  root.appendChild(ov);
+
+  var ovTitle = ov.querySelector('.overlay__title');
+  var ovScroll = ov.querySelector('.overlay__scroll');
+  var ovImg = ov.querySelector('.overlay__img');
+  ov.querySelector('.overlay__close').addEventListener('click', function () { store.closeOverlay(); });
+
+  var closeTimer = 0, currentOverlay = null;
+  store.subscribe(function (state) {
+    var id = state.overlay;
+    if (id === currentOverlay) return;
+    currentOverlay = id;
+
+    if (id && OVERLAYS[id]) {
+      var o = OVERLAYS[id];
+      ovImg.src = img(o.src);
+      ovImg.alt = o.title || id;
+      ovTitle.textContent = o.title || '';
+      ovScroll.scrollTop = 0;
+      clearTimeout(closeTimer);
+      ov.hidden = false;
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { ov.classList.add('is-open'); });
+      });
+    } else {
+      ov.classList.remove('is-open');
+      clearTimeout(closeTimer);
+      closeTimer = setTimeout(function () {
+        ov.hidden = true;
+        ovImg.removeAttribute('src');
+      }, 300);
+    }
+  });
+
+  /* 프리뷰 썸네일 레일 */
+  if (!kiosk) {
+    var rail = document.createElement('div');
+    rail.className = 'rail';
+    PAGES.forEach(function (p, i) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'rail__item';
+      item.innerHTML =
+        '<span class="rail__thumb" style="background-image:url(\'' + img(p.src) + '\')"></span>' +
+        '<span class="rail__num">' + String(i + 1).padStart(2, '0') + '</span>';
+      item.addEventListener('click', function () { store.goTo(i); });
+      rail.appendChild(item);
+      store.subscribe(function (s) { item.classList.toggle('is-active', s.index === i); });
+    });
+    root.appendChild(rail);
+  }
+})();
+
+/* 프리뷰 vs 키오스크 모드 (?mode=kiosk / PWA standalone) */
+function isKioskMode() {
+  var q = new URLSearchParams(location.search);
+  if (q.get('mode') === 'kiosk') return true;
+  if (q.get('mode') === 'preview') return false;
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   FIND — 코디 그리드 + 확대 뷰어
+   ═══════════════════════════════════════════════════════════════ */
+(function buildFind() {
+  var viewEl = document.getElementById('view-find');
+  var gridEl = document.getElementById('findGrid');
+  var overlay = document.getElementById('findZoom');
+  var stageEl = document.getElementById('findZoomStage');
+  var imgEl = document.getElementById('findZoomImg');
+  var countEl = document.getElementById('findZoomCount');
+
+  var scale = 1, tx = 0, ty = 0, minS = 1, maxS = 5, start = null, list = [], idx = 0;
+  var cur = 'women';
+
+  function apply() {
+    imgEl.style.transform = 'translate(-50%,-50%) translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+  }
+  function fit() {
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var r = Math.min(vw / imgEl.naturalWidth, (vh - 40) / imgEl.naturalHeight) * 0.92;
+    imgEl.style.width = (imgEl.naturalWidth * r) + 'px';
+    imgEl.style.height = 'auto';
+    scale = 1; tx = 0; ty = 0; apply();
+  }
+  function show() {
+    imgEl.src = img(list[idx]);
+    countEl.textContent = (idx + 1) + ' / ' + list.length;
+    imgEl.onload = fit;
+    if (imgEl.complete && imgEl.naturalWidth) fit();
+  }
+  function openPerson(g, i) { list = PEOPLE[g]; idx = i; overlay.classList.add('show'); show(); }
+  function pvStep(d) { idx = (idx + d + list.length) % list.length; show(); }
+  function closeZoom() { overlay.classList.remove('show'); }
+  function zoomOpen() { return overlay.classList.contains('show'); }
+
+  document.getElementById('findZoomClose').addEventListener('click', closeZoom);
+  document.getElementById('findPrev').addEventListener('click', function () { pvStep(-1); });
+  document.getElementById('findNext').addEventListener('click', function () { pvStep(1); });
+
+  function dist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+
+  stageEl.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 2) { start = { d: dist(e.touches), s: scale }; }
+    else if (e.touches.length === 1) {
+      start = { x: e.touches[0].clientX, y: e.touches[0].clientY, tx: tx, ty: ty, single: true, t: Date.now() };
+    }
+  }, { passive: false });
+
+  stageEl.addEventListener('touchmove', function (e) {
+    if (!start) return;
+    if (e.touches.length === 2 && start.d) {
+      e.preventDefault();
+      scale = Math.min(maxS, Math.max(minS, start.s * (dist(e.touches) / start.d)));
+      apply();
+    } else if (e.touches.length === 1 && start.single && scale > 1) {
+      e.preventDefault();
+      tx = start.tx + (e.touches[0].clientX - start.x);
+      ty = start.ty + (e.touches[0].clientY - start.y);
+      apply();
+    }
+  }, { passive: false });
+
+  stageEl.addEventListener('touchend', function (e) {
+    if (start && start.single && scale <= 1.02) {
+      var dx = e.changedTouches[0].clientX - start.x, dt = Date.now() - start.t;
+      if (Math.abs(dx) > 50 && dt < 500) { pvStep(dx < 0 ? 1 : -1); start = null; return; }
+    }
+    if (scale <= 1.02) { tx = 0; ty = 0; scale = 1; apply(); }
+    start = null;
+  });
+
+  var lastTap = 0;
+  stageEl.addEventListener('touchend', function () {
+    var now = Date.now();
+    if (now - lastTap < 300) { scale = scale > 1 ? 1 : 2.4; if (scale === 1) { tx = 0; ty = 0; } apply(); }
+    lastTap = now;
+  });
+
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay || e.target === stageEl) closeZoom();
+  });
+  stageEl.addEventListener('dblclick', function () {
+    scale = scale > 1 ? 1 : 2.4; if (scale === 1) { tx = 0; ty = 0; } apply();
+  });
+  stageEl.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    scale = Math.min(maxS, Math.max(minS, scale - e.deltaY * 0.002));
+    if (scale <= 1) { tx = 0; ty = 0; }
+    apply();
+  }, { passive: false });
+
+  /* 그리드 */
+  function renderGrid() {
+    gridEl.innerHTML = '';
+    PEOPLE[cur].forEach(function (src, i) {
+      var c = document.createElement('div');
+      c.className = 'cell';
+      c.innerHTML = '<img src="' + img(src) + '" alt="스타일 ' + (i + 1) + '">';
+      c.addEventListener('click', function () { openPerson(cur, i); });
+      gridEl.appendChild(c);
+    });
+  }
+  viewEl.querySelectorAll('.tab').forEach(function (t) {
+    t.addEventListener('click', function () {
+      cur = t.dataset.g;
+      viewEl.querySelectorAll('.tab').forEach(function (x) {
+        x.classList.toggle('active', x.dataset.g === cur);
+      });
+      renderGrid();
+    });
+  });
+  renderGrid();
+
+  /* 양옆 탭으로 넘기기 (좌 26% 이전 / 우 74% 다음) */
+  viewEl.addEventListener('click', function (e) {
+    if (zoomOpen()) return;
+    if (e.target.closest('.cell, .tab, .back, .zoom')) return;
+    go(e.clientX < window.innerWidth * 0.26 ? 'story' : 'compare');
+  });
+
+  window.findZoomOpen = zoomOpen;
+  window.findPvStep = pvStep;
+  window.findCloseZoom = closeZoom;
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPARE — 3:4 이미지 + 가운데 팝업
+   ═══════════════════════════════════════════════════════════════ */
+(function buildCompare() {
+  var viewEl = document.getElementById('view-compare');
+  document.getElementById('compareImg').src = img(IMAGES.compare);
+  document.getElementById('comparePopImg').src = img(IMAGES.byeon);
+
+  var pop = document.getElementById('comparePop');
+  viewEl.querySelector('.zone-prev').addEventListener('click', function () { go('find'); });
+  viewEl.querySelector('.zone-next').addEventListener('click', function () { go('mood'); });
+  viewEl.querySelector('.zone-center').addEventListener('click', function () { pop.classList.add('show'); });
+  pop.addEventListener('click', function () { pop.classList.remove('show'); });
+
+  window.comparePopOpen = function () { return pop.classList.contains('show'); };
+  window.compareClosePop = function () { pop.classList.remove('show'); };
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MOOD — 이미지 2장 세로 스택, 좌 25% 이전 / 우 25% 다음
+   ═══════════════════════════════════════════════════════════════ */
+(function buildMood() {
+  document.getElementById('moodImg1').src = img(IMAGES.mood1);
+  document.getElementById('moodImg2').src = img(IMAGES.mood2);
+
+  document.getElementById('view-mood').addEventListener('click', function (e) {
+    var x = e.clientX / window.innerWidth;
+    if (x < 0.25) go('compare');
+    else if (x > 0.75) go('event');
+    /* 가운데는 그냥 읽기 */
+  });
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   EVENT — 신청 폼 + 구글 시트 전송
+   ═══════════════════════════════════════════════════════════════ */
+/* 연락처를 010-0000-0000 형태로 — 숫자만 보내면 시트가 숫자로 바꿔 앞자리 0을 지움 */
+function formatPhone(v) {
+  var d = String(v || '').replace(/\D/g, '');
+  var m = /^02/.test(d) ? d.match(/^(02)(\d{3,4})(\d{4})$/) : d.match(/^(\d{3})(\d{3,4})(\d{4})$/);
+  return m ? m[1] + '-' + m[2] + '-' + m[3] : String(v || '').trim();
+}
+
+function submitApplication(payload) {
+  var STORE_KEY = 'nua.applications.v1';
+  var record = Object.assign(
+    { id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())), at: new Date().toISOString() },
+    payload
+  );
+
+  /* 1) 로컬 백업 */
+  try {
+    var prev = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+    prev.push(record);
+    localStorage.setItem(STORE_KEY, JSON.stringify(prev));
+  } catch (e) { /* 저장 실패해도 전송은 시도 */ }
+
+  /* 2) 구글 시트 전송 (no-cors) */
+  if (SHEET_URL) {
+    try {
+      fetch(SHEET_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(record)
+      });
+    } catch (e) { /* 실패해도 로컬엔 남음 */ }
+  }
+
+  return Promise.resolve({ ok: true, id: record.id });
+}
+
+(function buildEvent() {
+  document.getElementById('eventImg1').src = img(IMAGES.event1);
+  document.getElementById('eventImg2').src = img(IMAGES.event2);
+
+  /* 시간대 칩 */
+  var chips = document.getElementById('timeChips');
+  TIME_SLOTS.forEach(function (t) {
+    var label = document.createElement('label');
+    label.className = 'chip';
+    label.innerHTML = '<input type="checkbox" name="time" value="' + t + '"><span>' + t + '</span>';
+    chips.appendChild(label);
+  });
+
+  var applyBtn = document.getElementById('applyBtn');
+  var formCard = document.getElementById('formCard');
+  var form = document.getElementById('applyForm');
+  var consent = document.getElementById('consent');
+  var submitBtn = document.getElementById('submitBtn');
+  var doneCard = document.getElementById('doneCard');
+
+  applyBtn.addEventListener('click', function () {
+    formCard.hidden = false;
+    applyBtn.hidden = true;
+    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  consent.addEventListener('change', function () { submitBtn.disabled = !consent.checked; });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+
+    var fd = new FormData(form);
+    var payload = Object.fromEntries(fd.entries());
+    payload.time = fd.getAll('time');
+    payload.phone = formatPhone(payload.phone);
+    submitBtn.disabled = true;
+    submitBtn.textContent = '신청 중…';
+
+    submitApplication(payload).then(function (res) {
+      if (res.ok) {
+        formCard.hidden = true;
+        doneCard.hidden = false;
+        doneCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '신청 완료하기';
+        alert('전송에 실패했어요. 잠시 후 다시 시도해주세요.');
+      }
+    });
+  });
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   키오스크 운영 — 키보드 넘김 · 무입력 리셋 · 화면 꺼짐 방지 · 입력 하드닝
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 키보드 (운영자 리모컨) */
+window.addEventListener('keydown', function (e) {
+  if (currentView === 'story') {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); store.next(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); store.prev(); }
+    else if (e.key === 'Escape') { store.closeOverlay(); }
+  } else if (currentView === 'find') {
+    if (window.findZoomOpen()) {
+      if (e.key === 'ArrowLeft') window.findPvStep(-1);
+      else if (e.key === 'ArrowRight') window.findPvStep(1);
+      else if (e.key === 'Escape') window.findCloseZoom();
+      return;
+    }
+    if (e.key === 'ArrowRight' || e.key === ' ') go('compare');
+    else if (e.key === 'ArrowLeft') go('story');
+  } else if (currentView === 'compare') {
+    if (e.key === 'Escape') { window.compareClosePop(); return; }
+    if (window.comparePopOpen()) return;
+    if (e.key === 'ArrowRight' || e.key === ' ') go('mood');
+    else if (e.key === 'ArrowLeft') go('find');
+  } else if (currentView === 'mood') {
+    if (e.key === 'ArrowRight') go('event');
+    else if (e.key === 'ArrowLeft') go('compare');
+  }
+});
+
+/* 무입력 리셋 (스토리 화면에서만 — 신청 폼 작성 중 끊기지 않도록) */
+var idleTimer = 0;
+function kickIdle() {
+  clearTimeout(idleTimer);
+  if (currentView !== 'story') return;
+  idleTimer = setTimeout(function () { store.reset(); }, IDLE_RESET_MS);
+}
+function stopIdle() { clearTimeout(idleTimer); }
+['pointerdown', 'keydown', 'touchstart'].forEach(function (ev) {
+  window.addEventListener(ev, kickIdle, { passive: true });
+});
+
+/* 화면 꺼짐 방지 */
+(function installWakeLock() {
+  var lock = null;
+  function request() {
+    try {
+      if ('wakeLock' in navigator && document.visibilityState === 'visible') {
+        navigator.wakeLock.request('screen').then(function (l) { lock = l; }).catch(function () {});
+      }
+    } catch (e) { /* 미지원 — 무시 */ }
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') request();
+  });
+  request();
+})();
+
+/* 확대·컨텍스트 메뉴·제스처 차단 (신청 폼 화면은 제외) */
+window.addEventListener('contextmenu', function (e) {
+  if (currentView !== 'event') e.preventDefault();
+});
+['gesturestart', 'gesturechange', 'gestureend'].forEach(function (ev) {
+  document.addEventListener(ev, function (e) {
+    if (currentView !== 'event') e.preventDefault();
+  });
+});
+var lastTouchEnd = 0;
+document.addEventListener('touchend', function (e) {
+  if (currentView === 'event') return;
+  var now = Date.now();
+  if (now - lastTouchEnd <= 300) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
+
+
+/* ── 부팅 ────────────────────────────────────────────────────── */
+applyRoute();
+</script>
+</body>
+</html>
