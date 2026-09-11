@@ -3,7 +3,7 @@
 // ▶ 설정: 아래 SHEET_URL 에 Google Apps Script 웹앱 주소를 붙여넣으세요.
 //   (설정 방법은 프로젝트의 SHEETS연동.md 참고)
 //   비워두면 로컬(localStorage)에만 저장됩니다.
-const SHEET_URL = ''; // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbw2MzGoHbYIekP3C-uBNnp1RO2e26l8OYODdQAOBZtTlUtAbSr1_M6Wb4BySyfM1PB0/exec'; // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
 
 const STORE_KEY = 'nua.applications.v1';
 
