@@ -87,7 +87,8 @@ body[data-view="story"].is-kiosk   { background: #000; }
 body[data-view="find"]    { background: #fff; }
 body[data-view="compare"] { background: #f6f6f6; }
 body[data-view="mood"]    { background: #f6f6f6; user-select: none; -webkit-user-select: none; }
-body[data-view="event"]   { background: #f3f3f4; }
+body[data-view="event"],
+body[data-view="apply"]   { background: #f3f3f4; }
 
 /* ═══════════════ 1. STORY ═══════════════ */
 #view-story { min-height: 100dvh; }
@@ -221,13 +222,13 @@ body.is-kiosk .stage {
   max-width: 820px; margin: 0 auto; padding: 20px 24px; position: relative;
   height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
 }
-#view-find .back, #view-event .back {
+#view-find .back, #view-event .back, #view-apply .back {
   display: inline-flex; align-items: center; justify-content: center;
   width: 44px; height: 44px; margin: 0 0 8px -8px; border-radius: 50%;
   text-decoration: none; transition: background 120ms var(--ease);
   border: 0; background: transparent; cursor: pointer; padding: 0;
 }
-#view-find .back:hover, #view-event .back:hover { background: rgba(0, 0, 0, .05); }
+#view-find .back:hover, #view-event .back:hover, #view-apply .back:hover { background: rgba(0, 0, 0, .05); }
 
 #view-find .headline {
   font-size: 40px; line-height: 1.08; font-weight: 800;
@@ -337,9 +338,10 @@ body.is-kiosk .stage {
 /* 14.png 아래 빈 여백(약 700px) 잘라냄 — 원본 1500×2000 중 위 1400px만 표시 */
 #view-mood #moodImg2 { aspect-ratio: 1500 / 1400; object-fit: cover; object-position: top; }
 
-/* ═══════════════ 5. EVENT (이벤트 신청) ═══════════════ */
-#view-event.is-active { display: flex; justify-content: center; padding: 40px 20px 56px; }
-#view-event {
+/* ═══════════════ 5. EVENT (이벤트 안내) · 6. APPLY (신청 폼) ═══════════════ */
+#view-event.is-active,
+#view-apply.is-active { display: flex; justify-content: center; padding: 40px 20px 56px; }
+#view-event, #view-apply {
   --card: #ffffff;
   --ink: #141414;
   --ink-soft: #2a2a2a;
@@ -352,7 +354,7 @@ body.is-kiosk .stage {
   color: var(--ink);
   width: 100%;
 }
-#view-event .page { width: 100%; max-width: 440px; }
+#view-event .page, #view-apply .page { width: 100%; max-width: 440px; }
 #view-event .headline {
   font-size: 44px; line-height: 1.16; font-weight: 800; letter-spacing: -1.2px; margin: 4px 0 28px;
 }
@@ -392,69 +394,70 @@ body.is-kiosk .stage {
 #view-event .cta:hover { opacity: .65; }
 #view-event .cta:active { opacity: .5; }
 
-#view-event .form-card {
+/* 신청 폼 페이지 (#/apply) */
+#view-apply .form-card {
   margin-top: 14px; background: var(--card); border-radius: 22px; padding: 28px 22px 26px;
   box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 12px 32px rgba(0,0,0,.06);
 }
-#view-event .form-card h2 { font-size: 24px; font-weight: 800; letter-spacing: -.6px; margin: 0 0 6px; }
-#view-event .form-sub { font-size: 14px; color: var(--label); margin: 0 0 24px; line-height: 1.5; }
-#view-event .field { margin-bottom: 16px; }
-#view-event .field > label { display: block; font-size: 14px; font-weight: 600; color: var(--ink-soft); margin-bottom: 8px; }
-#view-event .req { color: var(--strike); font-weight: 700; }
-#view-event .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-#view-event .row--wide { grid-template-columns: 1.7fr 1fr; }
-#view-event .field .hint { font-size: 12px; font-weight: 500; color: var(--label); margin-left: 4px; }
-#view-event .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-#view-event .chip { position: relative; display: block; }
-#view-event .chip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-#view-event .chip span {
+#view-apply .form-card h2 { font-size: 24px; font-weight: 800; letter-spacing: -.6px; margin: 0 0 6px; }
+#view-apply .form-sub { font-size: 14px; color: var(--label); margin: 0 0 24px; line-height: 1.5; }
+#view-apply .field { margin-bottom: 16px; }
+#view-apply .field > label { display: block; font-size: 14px; font-weight: 600; color: var(--ink-soft); margin-bottom: 8px; }
+#view-apply .req { color: var(--strike); font-weight: 700; }
+#view-apply .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+#view-apply .row--wide { grid-template-columns: 1.7fr 1fr; }
+#view-apply .field .hint { font-size: 12px; font-weight: 500; color: var(--label); margin-left: 4px; }
+#view-apply .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+#view-apply .chip { position: relative; display: block; }
+#view-apply .chip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+#view-apply .chip span {
   display: block; padding: 12px 4px; text-align: center; font-size: 15px; font-weight: 600;
   color: var(--ink); background: #fff; border: 1.5px solid var(--line); border-radius: 10px;
   transition: background 120ms var(--ease), color 120ms var(--ease), border-color 120ms var(--ease);
 }
-#view-event .chip input:checked + span { background: var(--ink); color: #fff; border-color: var(--ink); }
-#view-event input, #view-event select {
+#view-apply .chip input:checked + span { background: var(--ink); color: #fff; border-color: var(--ink); }
+#view-apply input, #view-apply select {
   width: 100%; font-family: var(--font-kr); font-size: 16px; color: var(--ink); background: #fff;
   border: 1.5px solid var(--line); border-radius: 12px; padding: 14px;
   -webkit-appearance: none; appearance: none; transition: border-color 120ms var(--ease);
 }
-#view-event input::placeholder { color: #b8b8bc; }
-#view-event input:focus, #view-event select:focus { outline: none; border-color: var(--ink); }
-#view-event .consent {
+#view-apply input::placeholder { color: #b8b8bc; }
+#view-apply input:focus, #view-apply select:focus { outline: none; border-color: var(--ink); }
+#view-apply .consent {
   display: flex; gap: 10px; align-items: flex-start; margin: 8px 0 22px;
   font-size: 13px; color: var(--label); line-height: 1.55;
 }
-#view-event .consent input {
+#view-apply .consent input {
   -webkit-appearance: auto; appearance: auto; width: 20px; height: 20px; flex: none;
   margin: 1px 0 0; padding: 0; border: 0; border-radius: 0; accent-color: var(--ink); cursor: pointer;
 }
-#view-event .submit {
+#view-apply .submit {
   width: 100%; background: var(--ink); color: #fff; border: 0; border-radius: 16px; padding: 20px;
   font-family: var(--font-kr); font-size: 21px; font-weight: 800; letter-spacing: -.5px;
   cursor: pointer; transition: opacity 120ms var(--ease);
 }
-#view-event .submit:hover { opacity: .85; }
-#view-event .submit:disabled { opacity: .35; cursor: default; }
+#view-apply .submit:hover { opacity: .85; }
+#view-apply .submit:disabled { opacity: .35; cursor: default; }
 
-#view-event .done {
+#view-apply .done {
   margin-top: 14px; background: var(--card); border-radius: 22px; padding: 48px 24px; text-align: center;
   box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 12px 32px rgba(0,0,0,.06);
 }
-#view-event .done .badge {
+#view-apply .done .badge {
   width: 64px; height: 64px; margin: 0 auto 18px; border-radius: 50%; background: var(--ink);
   display: grid; place-items: center;
 }
-#view-event .done .badge svg { width: 34px; height: 34px; }
-#view-event .done h2 { font-size: 24px; font-weight: 800; letter-spacing: -.6px; margin: 0 0 8px; }
-#view-event .done p { font-size: 15px; color: var(--label); line-height: 1.6; margin: 0; }
-#view-event .home-btn {
+#view-apply .done .badge svg { width: 34px; height: 34px; }
+#view-apply .done h2 { font-size: 24px; font-weight: 800; letter-spacing: -.6px; margin: 0 0 8px; }
+#view-apply .done p { font-size: 15px; color: var(--label); line-height: 1.6; margin: 0; }
+#view-apply .home-btn {
   display: inline-block; margin-top: 24px; padding: 14px 30px;
   border: 2px solid var(--ink); border-radius: 14px;
   color: var(--ink); text-decoration: none; font-weight: 700; font-size: 16px;
   transition: opacity 120ms var(--ease); cursor: pointer; background: transparent;
   font-family: var(--font-kr);
 }
-#view-event .home-btn:hover { opacity: .65; }
+#view-apply .home-btn:hover { opacity: .65; }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
 </style>
@@ -551,9 +554,18 @@ body.is-kiosk .stage {
         </div>
       </section>
 
-      <button class="cta" type="button" id="applyBtn">이벤트 신청하시겠어요?</button>
+      <button class="cta" type="button" id="applyBtn" data-go="apply">이벤트 신청하시겠어요?</button>
+    </main>
+  </section>
 
-      <section class="form-card" id="formCard" hidden>
+  <!-- ═══ 6. APPLY ═══ (신청 폼 — 이벤트 화면의 신청 버튼으로 넘어옴) -->
+  <section class="view" id="view-apply">
+    <main class="page">
+      <button class="back" data-go="event" type="button" aria-label="이전 페이지">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="#141414" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+
+      <section class="form-card" id="formCard">
         <h2>이벤트 신청</h2>
         <p class="form-sub">아래 정보를 남겨주시면 순서대로 연락드릴게요.</p>
 
@@ -722,9 +734,9 @@ var TIME_SLOTS = ['11:00','12:00','13:00','14:00','15:00','16:00',
 
 
 /* ═══════════════════════════════════════════════════════════════
-   라우팅 — #/story · #/find · #/compare · #/mood · #/event
+   라우팅 — #/story · #/find · #/compare · #/mood · #/event · #/apply
    ═══════════════════════════════════════════════════════════════ */
-var VIEWS = ['story', 'find', 'compare', 'mood', 'event'];
+var VIEWS = ['story', 'find', 'compare', 'mood', 'event', 'apply'];
 var currentView = 'story';
 
 function go(name) { location.hash = '#/' + name; }
@@ -732,13 +744,16 @@ function go(name) { location.hash = '#/' + name; }
 function applyRoute() {
   var name = location.hash.replace(/^#\/?/, '');
   if (VIEWS.indexOf(name) === -1) name = 'story';
+  var prevView = currentView;
   currentView = name;
   document.body.setAttribute('data-view', name);
   VIEWS.forEach(function (v) {
     document.getElementById('view-' + v).classList.toggle('is-active', v === name);
   });
   window.scrollTo(0, 0);
-  if (name === 'event' && window.resetEvent) window.resetEvent();
+  /* 신청 폼 비우기: 새 방문(신청 페이지가 아닌 곳에서 이벤트 화면으로) 또는 완료 후 다시 신청 */
+  if (window.resetApply && ((name === 'event' && prevView !== 'apply') ||
+      (name === 'apply' && window.applyDone()))) window.resetApply();
   if (name === 'story') { kickIdle(); } else { stopIdle(); }
 }
 
@@ -1207,31 +1222,25 @@ function submitApplication(payload) {
     chips.appendChild(label);
   });
 
-  var applyBtn = document.getElementById('applyBtn');
+  /* 이벤트 화면의 신청 버튼(data-go="apply")을 누르면 신청 폼 페이지(#/apply)로 넘어감 */
   var formCard = document.getElementById('formCard');
   var form = document.getElementById('applyForm');
   var consent = document.getElementById('consent');
   var submitBtn = document.getElementById('submitBtn');
   var doneCard = document.getElementById('doneCard');
 
-  applyBtn.addEventListener('click', function () {
-    formCard.hidden = false;
-    applyBtn.hidden = true;
-    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-
   consent.addEventListener('change', function () { submitBtn.disabled = !consent.checked; });
 
-  /* 이벤트 화면에 들어올 때마다 처음 상태로 — 신청 버튼 보이기, 폼 비우고 닫기, 완료 카드 닫기
-     (키오스크에서 다음 사람이 이전 사람의 입력이나 완료 화면을 보지 않도록) */
-  window.resetEvent = function () {
+  /* 신청 폼 처음 상태로 — 입력 비우기, 완료 카드 닫기 (호출은 applyRoute)
+     키오스크에서 다음 사람이 이전 사람의 입력이나 완료 화면을 보지 않도록 */
+  window.resetApply = function () {
     form.reset();
     submitBtn.disabled = true;
     submitBtn.textContent = '신청 완료하기';
-    formCard.hidden = true;
+    formCard.hidden = false;
     doneCard.hidden = true;
-    applyBtn.hidden = false;
   };
+  window.applyDone = function () { return !doneCard.hidden; };
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -1248,7 +1257,7 @@ function submitApplication(payload) {
       if (res.ok) {
         formCard.hidden = true;
         doneCard.hidden = false;
-        doneCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        window.scrollTo(0, 0);
       } else {
         submitBtn.disabled = false;
         submitBtn.textContent = '신청 완료하기';
@@ -1317,18 +1326,19 @@ function stopIdle() { clearTimeout(idleTimer); }
   request();
 })();
 
-/* 확대·컨텍스트 메뉴·제스처 차단 (신청 폼 화면은 제외) */
+/* 확대·컨텍스트 메뉴·제스처 차단 (이벤트·신청 폼 화면은 제외) */
+function isFormView() { return currentView === 'event' || currentView === 'apply'; }
 window.addEventListener('contextmenu', function (e) {
-  if (currentView !== 'event') e.preventDefault();
+  if (!isFormView()) e.preventDefault();
 });
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (ev) {
   document.addEventListener(ev, function (e) {
-    if (currentView !== 'event') e.preventDefault();
+    if (!isFormView()) e.preventDefault();
   });
 });
 var lastTouchEnd = 0;
 document.addEventListener('touchend', function (e) {
-  if (currentView === 'event') return;
+  if (isFormView()) return;
   var now = Date.now();
   if (now - lastTouchEnd <= 300) e.preventDefault();
   lastTouchEnd = now;
