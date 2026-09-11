@@ -280,15 +280,23 @@ body.is-kiosk .stage {
 #view-find .cell img {
   width: 100%; height: 100%; object-fit: cover; object-position: top center; pointer-events: none;
 }
+/* 인물 위치 맞춤(PEOPLE_BOX) — 높이·위치는 JS가 사진마다 계산해 인라인으로 넣음 */
+#view-find .cell { position: relative; }
+#view-find .cell img.framed { position: absolute; left: 50%; width: auto; max-width: none; object-fit: fill; }
 
 /* 확대 뷰어 */
 #view-find .zoom { position: fixed; inset: 0; background: rgba(17,17,17,.95); display: none; z-index: 70; touch-action: none; }
 #view-find .zoom.show { display: block; }
 #view-find .zoom-stage { position: absolute; inset: 0; overflow: hidden; }
-#view-find .zoom img {
+#view-find .zoom-card {
   position: absolute; top: 50%; left: 50%; transform-origin: center center; will-change: transform;
-  user-select: none; max-width: none; background: #fff; border-radius: 6px;
+  background: #fff; border-radius: 6px; overflow: hidden;
 }
+#view-find .zoom-card img {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%; max-width: none; user-select: none;
+}
+/* ZOOM_FRAME 사진: 높이·위치·가로 가운데 이동은 JS가 인라인으로 넣음 */
+#view-find .zoom-card img.framed { left: 50%; width: auto; }
 #view-find .zoom-close {
   position: absolute; top: 14px; right: 16px; z-index: 2; background: rgba(255,255,255,.16);
   border: none; color: #fff; width: 46px; height: 46px; border-radius: 50%; font-size: 22px; cursor: pointer;
@@ -506,7 +514,7 @@ body.is-kiosk .stage {
       <div class="zoom-count" id="findZoomCount"></div>
       <button class="pv-nav pv-prev" id="findPrev" type="button" aria-label="이전">‹</button>
       <button class="pv-nav pv-next" id="findNext" type="button" aria-label="다음">›</button>
-      <div class="zoom-stage" id="findZoomStage"><img id="findZoomImg" alt="확대 이미지"></div>
+      <div class="zoom-stage" id="findZoomStage"><div class="zoom-card" id="findZoomCard"><img id="findZoomImg" alt="확대 이미지"></div></div>
       <div class="zoom-hint">좌우로 넘기기 · 더블탭/두 손가락 확대</div>
     </div>
   </section>
@@ -680,6 +688,32 @@ var PEOPLE = {
     'find/img/men/1-minimal.png', 'find/img/men/2-vintage.png', 'find/img/men/3-street.png',
     'find/img/men/4-amekaji.png', 'find/img/men/5-casual.png', 'find/img/men/6-formal.png'
   ]
+};
+
+/* find 칸 안 인물 크기·위치 맞춤 — 모든 칸을 3번째 칸(women/3)과 같은 전신 비율로.
+   FIND_FRAME: 칸 높이 대비 인물 머리 위치(top)와 머리~발끝 길이(height), %
+   PEOPLE_BOX: 사진 속 인물의 [머리 위 %, 발끝 %, 가로 가운데 %] (원본 이미지 기준)
+   사진을 바꾸면 여기 값도 바꿔야 함 (없으면 예전처럼 위쪽 맞춤으로 표시) */
+var FIND_FRAME = { top: 8.2, height: 84.4 };
+var PEOPLE_BOX = {
+  'find/img/women/1.png':       [1.7, 98.6, 52.2],
+  'find/img/women/2.png':       [6.9, 97.5, 49.6],   // 가로는 손에 든 재킷 빼고 몸 중심
+  'find/img/women/3.png':       [8.2, 92.6, 49.0],
+  'find/img/women/4.png':       [7.1, 94.4, 49.5],
+  'find/img/women/5.png':       [6.3, 95.1, 48.1],
+  'find/img/women/6.png':       [0.2, 99.8, 53.9],
+  'find/img/men/1-minimal.png': [6.0, 98.1, 65.2],
+  'find/img/men/2-vintage.png': [13.8, 94.9, 47.7],
+  'find/img/men/3-street.png':  [5.8, 99.9, 54.8],
+  'find/img/men/4-amekaji.png': [17.4, 92.9, 46.6],
+  'find/img/men/5-casual.png':  [12.9, 96.7, 52.4],
+  'find/img/men/6-formal.png':  [2.6, 98.5, 52.6]
+};
+/* 확대 뷰어 — 인물을 카드 정가운데, 남자 1번(1-minimal)과 같은 크기로 (여성도 같은 비율).
+   aspect: 카드 가로/세로, top·height: 카드 높이 대비 %. 성별별로 켬 (없으면 원본 그대로) */
+var ZOOM_FRAME = {
+  men:   { aspect: 735 / 1105, top: 3.95, height: 92.1 },
+  women: { aspect: 735 / 1105, top: 3.95, height: 92.1 }
 };
 
 /* ── 그 외 이미지 ────────────────────────────────────────────── */
@@ -964,28 +998,34 @@ function isKioskMode() {
   var overlay = document.getElementById('findZoom');
   var stageEl = document.getElementById('findZoomStage');
   var imgEl = document.getElementById('findZoomImg');
+  var cardEl = document.getElementById('findZoomCard');
   var countEl = document.getElementById('findZoomCount');
 
-  var scale = 1, tx = 0, ty = 0, minS = 1, maxS = 5, start = null, list = [], idx = 0;
+  var scale = 1, tx = 0, ty = 0, minS = 1, maxS = 5, start = null, list = [], idx = 0, listG = '';
   var cur = 'women';
 
   function apply() {
-    imgEl.style.transform = 'translate(-50%,-50%) translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+    cardEl.style.transform = 'translate(-50%,-50%) translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
   }
+  /* 카드 크기: ZOOM_FRAME 사진은 고정 비율 카드, 아니면 사진 원본 비율 */
   function fit() {
-    var vw = window.innerWidth, vh = window.innerHeight;
-    var r = Math.min(vw / imgEl.naturalWidth, (vh - 40) / imgEl.naturalHeight) * 0.92;
-    imgEl.style.width = (imgEl.naturalWidth * r) + 'px';
-    imgEl.style.height = 'auto';
+    var f = imgEl.classList.contains('framed') ? ZOOM_FRAME[listG] : null;
+    var w = f ? f.aspect : imgEl.naturalWidth, h = f ? 1 : imgEl.naturalHeight;
+    var r = Math.min(window.innerWidth / w, (window.innerHeight - 40) / h) * 0.92;
+    cardEl.style.width = (w * r) + 'px';
+    cardEl.style.height = (h * r) + 'px';
     scale = 1; tx = 0; ty = 0; apply();
   }
   function show() {
+    var css = frameCss(list[idx], ZOOM_FRAME[listG]);
+    imgEl.className = css ? 'framed' : '';
+    imgEl.style.cssText = css;
     imgEl.src = img(list[idx]);
     countEl.textContent = (idx + 1) + ' / ' + list.length;
     imgEl.onload = fit;
     if (imgEl.complete && imgEl.naturalWidth) fit();
   }
-  function openPerson(g, i) { list = PEOPLE[g]; idx = i; overlay.classList.add('show'); show(); }
+  function openPerson(g, i) { list = PEOPLE[g]; listG = g; idx = i; overlay.classList.add('show'); show(); }
   function pvStep(d) { idx = (idx + d + list.length) % list.length; show(); }
   function closeZoom() { overlay.classList.remove('show'); }
   function zoomOpen() { return overlay.classList.contains('show'); }
@@ -1046,13 +1086,25 @@ function isKioskMode() {
     apply();
   }, { passive: false });
 
+  /* 인물 머리~발끝이 틀(f)의 top ~ top+height 위치, 가로 가운데에 오도록 크기·위치 계산.
+     % 는 틀 높이 기준 — 그리드 칸(FIND_FRAME)과 확대 카드(ZOOM_FRAME)에 같이 씀 */
+  function frameCss(src, f) {
+    var b = PEOPLE_BOX[src];
+    if (!b || !f) return '';
+    var h = f.height / (b[1] - b[0]) * 100;   // 이미지 높이 (틀 높이 대비 %)
+    var top = f.top - b[0] * h / 100;         // 이미지 위쪽 위치 (틀 높이 대비 %)
+    return 'height:' + h.toFixed(2) + '%;top:' + top.toFixed(2) + '%;transform:translateX(-' + b[2] + '%)';
+  }
+
   /* 그리드 */
   function renderGrid() {
     gridEl.innerHTML = '';
     PEOPLE[cur].forEach(function (src, i) {
       var c = document.createElement('div');
       c.className = 'cell';
-      c.innerHTML = '<img src="' + img(src) + '" alt="스타일 ' + (i + 1) + '">';
+      var css = frameCss(src, FIND_FRAME);
+      c.innerHTML = '<img src="' + img(src) + '" alt="스타일 ' + (i + 1) + '"' +
+        (css ? ' class="framed" style="' + css + '"' : '') + '>';
       c.addEventListener('click', function () { openPerson(cur, i); });
       gridEl.appendChild(c);
     });
