@@ -159,50 +159,23 @@ body.is-kiosk .stage {
   font-size: 13px; font-weight: 590; letter-spacing: -0.08px; color: var(--labels-secondary);
 }
 
-/* 오버레이 바텀 시트 */
-.overlay {
+/* 스토리 2페이지 버튼 팝업 — compare 의 변우석 사진처럼 어두운 배경 위 카드.
+   카드 크기·위치는 JS(placeCard)가 스토리 화면 기준으로 계산 */
+.ovpop {
   position: fixed; inset: 0; z-index: 100;
-  display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  background: rgba(17, 17, 17, .72); cursor: pointer;
 }
-.overlay__backdrop {
-  position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4);
-  opacity: 0; transition: opacity 300ms var(--ease);
+.ovpop__card {
+  position: absolute; overflow: hidden; background: #f7f7f7;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .45);
 }
-.overlay.is-open .overlay__backdrop { opacity: 1; }
-.overlay__sheet {
-  position: relative; width: min(100%, 560px); max-height: 92dvh;
-  display: flex; flex-direction: column; background: #fff;
-  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
-  box-shadow: var(--shadow-sheet);
-  transform: translateY(100%);
-  transition: transform 300ms var(--ease);
-  overflow: hidden;
+.ovpop.is-open .ovpop__card { animation: popIn .22s var(--ease); }
+.ovpop__img { display: block; max-width: none; pointer-events: none; }
+.ovpop__close {
+  position: absolute; top: 16px; right: 18px; z-index: 1; width: 46px; height: 46px; border-radius: 50%;
+  border: none; background: rgba(255, 255, 255, .2); color: #fff; font-size: 22px; cursor: pointer;
+  display: grid; place-items: center;
 }
-.overlay.is-open .overlay__sheet { transform: translateY(0); }
-.overlay__bar {
-  position: relative; flex: none; display: flex; align-items: center; gap: 12px;
-  padding: 20px 16px 12px; border-bottom: 1px solid var(--separators-non-opaque);
-}
-.overlay__grabber {
-  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-  width: 36px; height: 5px; border-radius: var(--radius-capsule); background: var(--fills-tertiary);
-}
-.overlay__title {
-  flex: 1; font-size: 15px; font-weight: 590; letter-spacing: -0.2px;
-  color: var(--labels-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.overlay__close {
-  flex: none; display: grid; place-items: center; width: 44px; height: 44px;
-  padding: 0; border: 0; border-radius: 50%;
-  background: var(--fills-tertiary); color: var(--labels-secondary);
-  font-size: 18px; cursor: pointer;
-}
-@media (hover: hover) { .overlay__close:hover { opacity: 0.7; } }
-.overlay__scroll {
-  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  touch-action: pan-y; overscroll-behavior: contain; background: #fff;
-}
-.overlay__img { display: block; width: 100%; height: auto; }
 
 .error { color: var(--labels-secondary); text-align: center; padding: 40px; line-height: 1.5; }
 
@@ -674,10 +647,12 @@ var PAGES = [
   }
 ];
 
-/* ── 오버레이 시트 이미지 (구 overlays.json) ─────────────────── */
+/* ── 오버레이 팝업 이미지 (구 overlays.json) ────────────────────
+   crop: 원본(가로 imgW px) 중 보여줄 카드 영역 [x, y, w, h] — 빈 여백·그림자 제외
+   at:   팝업 세로 가운데 위치 = 누른 버튼 높이 (스토리 화면 높이 대비 %) */
 var OVERLAYS = {
-  reading: { src: 'overlays/reading.png', title: '' },
-  styling: { src: 'overlays/styling.png', title: '' }
+  reading: { src: 'overlays/reading.png', title: '무드 리딩', imgW: 1500, crop: [76, 59, 1347, 711], at: 25.2 },
+  styling: { src: 'overlays/styling.png', title: '퍼스널 컬러 / 골격진단', imgW: 1500, crop: [76, 1122, 1347, 746], at: 74.6 }
 };
 
 /* ── find 화면 코디 사진 ─────────────────────────────────────── */
@@ -920,55 +895,57 @@ store.setOnPastEnd(function () { go('find'); });
     tapRight.disabled = locked;
   });
 
-  /* 오버레이 바텀 시트 */
+  /* 오버레이 팝업 — 변우석 사진처럼 어두운 배경 위 카드. 사진은 카드 부분(crop)만 보이고,
+     세로 위치는 누른 버튼 높이(at)에 맞춤. 아무 데나 누르면 닫힘 */
   var ov = document.createElement('div');
-  ov.className = 'overlay';
+  ov.className = 'ovpop';
   ov.hidden = true;
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
   ov.innerHTML =
-    '<div class="overlay__backdrop"></div>' +
-    '<div class="overlay__sheet" role="dialog" aria-modal="true" aria-label="상세 보기">' +
-      '<div class="overlay__bar">' +
-        '<span class="overlay__grabber" aria-hidden="true"></span>' +
-        '<span class="overlay__title"></span>' +
-        '<button class="overlay__close" type="button" aria-label="닫기">' +
-          '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" aria-hidden="true">' +
-          '<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
-        '</button>' +
-      '</div>' +
-      '<div class="overlay__scroll"><img class="overlay__img" alt=""></div>' +
-    '</div>';
+    '<button class="ovpop__close" type="button" aria-label="닫기">✕</button>' +
+    '<div class="ovpop__card"><img class="ovpop__img" alt=""></div>';
   root.appendChild(ov);
 
-  var ovTitle = ov.querySelector('.overlay__title');
-  var ovScroll = ov.querySelector('.overlay__scroll');
-  var ovImg = ov.querySelector('.overlay__img');
-  ov.querySelector('.overlay__close').addEventListener('click', function () { store.closeOverlay(); });
+  var ovCard = ov.querySelector('.ovpop__card');
+  var ovImg = ov.querySelector('.ovpop__img');
+  ov.addEventListener('click', function () { store.closeOverlay(); });
 
-  var closeTimer = 0, currentOverlay = null;
+  /* 카드: 스토리 화면(stage) 폭의 94%, 세로 가운데 = 버튼 높이.
+     이미지는 crop 영역이 카드에 꼭 맞게 확대·이동 (모서리 반경은 원본 카드 모서리보다 조금 크게) */
+  function placeCard(o) {
+    var s = stage.getBoundingClientRect(), c = o.crop;
+    var w = Math.min(s.width, window.innerWidth) * 0.94;
+    var k = w / c[2], h = c[3] * k;
+    var top = s.top + s.height * o.at / 100 - h / 2;
+    top = Math.max(12, Math.min(window.innerHeight - h - 12, top));
+    ovCard.style.cssText = 'width:' + w + 'px;height:' + h + 'px;left:' + (s.left + s.width / 2 - w / 2) +
+      'px;top:' + top + 'px;border-radius:' + Math.max(12, 36 * k) + 'px';
+    ovImg.style.cssText = 'width:' + o.imgW * k + 'px;margin-left:' + (-c[0] * k) + 'px;margin-top:' + (-c[1] * k) + 'px';
+  }
+
+  var currentOverlay = null;
   store.subscribe(function (state) {
     var id = state.overlay;
     if (id === currentOverlay) return;
     currentOverlay = id;
-
     if (id && OVERLAYS[id]) {
       var o = OVERLAYS[id];
       ovImg.src = img(o.src);
       ovImg.alt = o.title || id;
-      ovTitle.textContent = o.title || '';
-      ovScroll.scrollTop = 0;
-      clearTimeout(closeTimer);
+      ov.setAttribute('aria-label', o.title || id);
       ov.hidden = false;
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () { ov.classList.add('is-open'); });
-      });
-    } else {
+      placeCard(o);
       ov.classList.remove('is-open');
-      clearTimeout(closeTimer);
-      closeTimer = setTimeout(function () {
-        ov.hidden = true;
-        ovImg.removeAttribute('src');
-      }, 300);
+      void ov.offsetWidth;   // 열 때마다 튀어나오는 애니메이션 다시 시작
+      ov.classList.add('is-open');
+    } else {
+      ov.hidden = true;
+      ov.classList.remove('is-open');
     }
+  });
+  window.addEventListener('resize', function () {
+    if (currentOverlay && OVERLAYS[currentOverlay]) placeCard(OVERLAYS[currentOverlay]);
   });
 })();
 
