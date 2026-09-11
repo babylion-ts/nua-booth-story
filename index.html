@@ -351,6 +351,8 @@ body.is-kiosk .stage {
 #view-mood { font-family: var(--font-kr); }
 #view-mood .stack { max-width: 900px; margin: 0 auto; }
 #view-mood .stack img { display: block; width: 100%; height: auto; }
+/* 14.png 아래 빈 여백(약 700px) 잘라냄 — 원본 1500×2000 중 위 1400px만 표시 */
+#view-mood #moodImg2 { aspect-ratio: 1500 / 1400; object-fit: cover; object-position: top; }
 
 /* ═══════════════ 5. EVENT (이벤트 신청) ═══════════════ */
 #view-event.is-active { display: flex; justify-content: center; padding: 40px 20px 56px; }
