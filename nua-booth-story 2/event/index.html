@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>NUA 무드 완성 이벤트</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <style>
+    :root{
+      /* 파일3 색감 유지: 연회색 배경 · 블랙 텍스트 · 블루 취소선 · 아웃라인 버튼 */
+      --bg:#f3f3f4;
+      --card:#ffffff;
+      --ink:#141414;          /* 헤딩/본문 */
+      --ink-soft:#2a2a2a;
+      --label:#8a8a8e;        /* 캡션/라벨 (파일3 회색) */
+      --line:#e6e6e8;
+      --strike:#2e6ff2;       /* 파일3 블루 취소선 */
+      --free-bg:#141414;      /* FREE 배지 (파일3 블랙) */
+      --free-ink:#ffffff;
+      --ease:cubic-bezier(.4,0,.2,1);
+      --font:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,
+             'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;}
+    body{
+      background:var(--bg);
+      font-family:var(--font);
+      color:var(--ink);
+      -webkit-font-smoothing:antialiased;
+      display:flex;
+      justify-content:center;
+      padding:40px 20px 56px;
+    }
+    .page{width:100%;max-width:440px;}
+
+    /* 돌아가기 (→ 키오스크 스토리) */
+    .back{
+      display:inline-flex;align-items:center;justify-content:center;
+      width:44px;height:44px;margin:0 0 6px -8px;border-radius:50%;
+      text-decoration:none;transition:background 120ms var(--ease);
+    }
+    .back:hover{background:rgba(0,0,0,.05);}
+
+    /* ── 헤딩 (파일1/2 형식: 큰 볼드 헤딩) ── */
+    .headline{
+      font-size:44px;
+      line-height:1.16;
+      font-weight:800;
+      letter-spacing:-1.2px;
+      margin:4px 0 28px;
+    }
+
+    /* ── 카드 (이미지 + 정보 패널이 하나의 라운드 카드) ── */
+    .card{
+      background:var(--card);
+      border-radius:22px;
+      overflow:hidden;
+      box-shadow:0 1px 3px rgba(0,0,0,.04), 0 12px 32px rgba(0,0,0,.06);
+    }
+
+    /* 히어로: 두 사진 나란히 (파일3 구성) */
+    .hero{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--card);}
+    .hero img{display:block;width:100%;height:210px;object-fit:cover;}
+
+    .panel{padding:24px 22px 26px;}
+
+    /* 라벨: 파일2의 라벨 위치/자간 형식 + 파일3의 회색 색감/내용 */
+    .eyebrow{
+      font-size:13px;
+      font-weight:600;
+      letter-spacing:1.5px;
+      color:var(--label);
+      margin:2px 0 18px;
+    }
+
+    /* 체크리스트 (파일2 형식 + 파일3 블랙 텍스트) */
+    .list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:15px;}
+    .list li{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600;color:var(--ink-soft);}
+    .check{flex:none;width:22px;height:22px;}
+    .check svg{display:block;width:100%;height:100%;}
+
+    .divider{height:1px;background:var(--line);margin:24px 0 20px;}
+
+    /* 가격 (파일2 형식: 정가 + 취소선 + FREE 강조 / 파일3 색감·내용) */
+    .price{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+    .price .label{font-size:15px;font-weight:600;color:var(--label);}
+    .price .original{
+      position:relative;font-size:26px;font-weight:700;color:var(--ink);
+    }
+    .price .original::after{
+      content:"";position:absolute;left:-2px;right:-2px;top:52%;height:2.5px;
+      background:var(--strike);transform:rotate(-8deg);border-radius:2px;
+    }
+    .price .arrow{font-size:22px;font-weight:800;color:var(--ink);}
+    .free{
+      display:inline-flex;align-items:center;
+      background:var(--free-bg);color:var(--free-ink);
+      font-size:20px;font-weight:800;letter-spacing:.5px;
+      padding:8px 20px;border-radius:999px;
+    }
+
+    /* CTA (파일2 형식: 풀폭 강조 버튼 / 파일3 색감: 아웃라인 블랙) */
+    .cta{
+      display:block;width:100%;margin-top:26px;
+      background:var(--card);color:var(--ink);
+      border:2px solid var(--ink);border-radius:16px;
+      padding:20px;font-family:var(--font);
+      font-size:21px;font-weight:800;letter-spacing:-.5px;
+      cursor:pointer;transition:opacity 120ms var(--ease);
+    }
+    .cta:hover{opacity:.65;}
+    .cta:active{opacity:.5;}
+
+    /* ── 신청폼 (같은 디자인 언어) ── */
+    .form-card{
+      margin-top:14px;background:var(--card);border-radius:22px;padding:28px 22px 26px;
+      box-shadow:0 1px 3px rgba(0,0,0,.04), 0 12px 32px rgba(0,0,0,.06);
+    }
+    .form-card h2{font-size:24px;font-weight:800;letter-spacing:-.6px;margin:0 0 6px;}
+    .form-card .form-sub{font-size:14px;color:var(--label);margin:0 0 24px;line-height:1.5;}
+    .field{margin-bottom:16px;}
+    .field > label{display:block;font-size:14px;font-weight:600;color:var(--ink-soft);margin-bottom:8px;}
+    .req{color:var(--strike);font-weight:700;}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .row--wide{grid-template-columns:1.7fr 1fr;}   /* 이름·연락처 넓게 / 나이·지역 좁게 */
+    /* 희망 시간대 칩 (중복 선택) */
+    .field .hint{font-size:12px;font-weight:500;color:var(--label);margin-left:4px;}
+    .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+    .chip{position:relative;display:block;}
+    .chip input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;}
+    .chip span{display:block;padding:12px 4px;text-align:center;font-size:15px;font-weight:600;
+      color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:10px;
+      transition:background 120ms var(--ease),color 120ms var(--ease),border-color 120ms var(--ease);}
+    .chip input:checked + span{background:var(--ink);color:#fff;border-color:var(--ink);}
+    input,select{
+      width:100%;font-family:var(--font);font-size:16px;color:var(--ink);background:#fff;
+      border:1.5px solid var(--line);border-radius:12px;padding:14px;
+      -webkit-appearance:none;appearance:none;transition:border-color 120ms var(--ease);
+    }
+    input::placeholder{color:#b8b8bc;}
+    input:focus,select:focus{outline:none;border-color:var(--ink);}
+    select{
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23141414' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;background-position:right 14px center;padding-right:42px;color:var(--ink);
+    }
+    select:required:invalid{color:#b8b8bc;}
+    .consent{display:flex;gap:10px;align-items:flex-start;margin:8px 0 22px;font-size:13px;color:var(--label);line-height:1.55;}
+    .consent input{-webkit-appearance:auto;appearance:auto;width:20px;height:20px;flex:none;margin:1px 0 0;padding:0;border:0;border-radius:0;accent-color:var(--ink);cursor:pointer;}
+    .consent a{color:var(--ink-soft);text-underline-offset:2px;}
+    .submit{
+      width:100%;background:var(--ink);color:#fff;border:0;border-radius:16px;padding:20px;
+      font-family:var(--font);font-size:21px;font-weight:800;letter-spacing:-.5px;
+      cursor:pointer;transition:opacity 120ms var(--ease);
+    }
+    .submit:hover{opacity:.85;}
+    .submit:disabled{opacity:.35;cursor:default;}
+
+    /* 신청 완료 */
+    .done{margin-top:14px;background:var(--card);border-radius:22px;padding:48px 24px;text-align:center;
+      box-shadow:0 1px 3px rgba(0,0,0,.04), 0 12px 32px rgba(0,0,0,.06);}
+    .done .badge{width:64px;height:64px;margin:0 auto 18px;border-radius:50%;background:var(--ink);
+      display:grid;place-items:center;}
+    .done .badge svg{width:34px;height:34px;}
+    .done h2{font-size:24px;font-weight:800;letter-spacing:-.6px;margin:0 0 8px;}
+    .done p{font-size:15px;color:var(--label);line-height:1.6;margin:0;}
+    .home-btn{
+      display:inline-block;margin-top:24px;padding:14px 30px;
+      border:2px solid var(--ink);border-radius:14px;
+      color:var(--ink);text-decoration:none;font-weight:700;font-size:16px;
+      transition:opacity 120ms var(--ease);
+    }
+    .home-btn:hover{opacity:.65;}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="back" href="../?mode=kiosk" aria-label="돌아가기">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="#141414" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <h1 class="headline">나의 무드를<br>완성해보세요</h1>
+
+    <section class="card">
+      <div class="hero">
+        <img src="img/personal-color.jpg" alt="퍼스널컬러">
+        <img src="img/body-type.jpg" alt="골격진단">
+      </div>
+
+      <div class="panel">
+        <p class="eyebrow">NUA image branding</p>
+
+        <ul class="list">
+          <li><span class="check"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#141414" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>무드 리딩</li>
+          <li><span class="check"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#141414" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>퍼스널컬러 or 골격진단</li>
+          <li><span class="check"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#141414" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>스타일링 제안</li>
+          <li><span class="check"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#141414" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>결과지 PDF 제공</li>
+        </ul>
+
+        <div class="divider"></div>
+
+        <div class="price">
+          <span class="label">정가</span>
+          <span class="original">150,000</span>
+          <span class="arrow">→</span>
+          <span class="free">FREE</span>
+        </div>
+      </div>
+    </section>
+
+    <button class="cta" type="button" id="applyBtn">이벤트 신청하시겠어요?</button>
+
+    <!-- 신청폼 -->
+    <section class="form-card" id="formCard" hidden>
+      <h2>이벤트 신청</h2>
+      <p class="form-sub">아래 정보를 남겨주시면 순서대로 연락드릴게요.</p>
+
+      <form id="applyForm" novalidate>
+        <div class="row row--wide">
+          <div class="field">
+            <label for="name">이름 <span class="req">*</span></label>
+            <input id="name" name="name" type="text" placeholder="이름" required autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="age">나이</label>
+            <input id="age" name="age" type="number" inputmode="numeric" min="1" max="120" placeholder="나이">
+          </div>
+        </div>
+
+        <div class="row row--wide">
+          <div class="field">
+            <label for="phone">연락처 <span class="req">*</span></label>
+            <input id="phone" name="phone" type="tel" inputmode="tel" placeholder="010-0000-0000" required autocomplete="tel">
+          </div>
+          <div class="field">
+            <label for="region">지역 <span class="req">*</span></label>
+            <input id="region" name="region" type="text" placeholder="예) 강남역" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>희망 시간대 <span class="hint">(중복 선택 가능)</span></label>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" name="time" value="11:00"><span>11:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="12:00"><span>12:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="13:00"><span>13:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="14:00"><span>14:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="15:00"><span>15:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="16:00"><span>16:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="17:00"><span>17:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="18:00"><span>18:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="19:00"><span>19:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="20:00"><span>20:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="21:00"><span>21:00</span></label>
+            <label class="chip"><input type="checkbox" name="time" value="22:00"><span>22:00</span></label>
+          </div>
+        </div>
+
+        <label class="consent">
+          <input type="checkbox" id="consent" name="consent" required>
+          <span>개인정보 수집·이용에 동의합니다. (필수)<br>
+          이벤트 예약 안내에만 사용하며, 종료 후 파기합니다.</span>
+        </label>
+
+        <button class="submit" type="submit" id="submitBtn" disabled>신청 완료하기</button>
+      </form>
+    </section>
+
+    <!-- 신청 완료 -->
+    <section class="done" id="doneCard" hidden>
+      <div class="badge">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h2>신청이 완료되었어요!</h2>
+      <p>남겨주신 연락처로 예약 안내를 드릴게요.<br>나의 무드, 곧 함께 완성해요.</p>
+      <a class="home-btn" href="../?mode=kiosk">처음으로</a>
+    </section>
+  </main>
+
+  <script type="module">
+    import { submitApplication } from '../src/overlay/submitApplication.js';
+
+    const applyBtn  = document.getElementById('applyBtn');
+    const formCard  = document.getElementById('formCard');
+    const form      = document.getElementById('applyForm');
+    const consent   = document.getElementById('consent');
+    const submitBtn = document.getElementById('submitBtn');
+    const doneCard  = document.getElementById('doneCard');
+
+    // CTA → 폼 펼치기 + 스크롤
+    applyBtn.addEventListener('click', () => {
+      formCard.hidden = false;
+      applyBtn.hidden = true;
+      formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // 개인정보 동의해야 제출 활성화
+    consent.addEventListener('change', () => { submitBtn.disabled = !consent.checked; });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!form.checkValidity()) { form.reportValidity(); return; }
+
+      const fd = new FormData(form);
+      const payload = Object.fromEntries(fd.entries());
+      payload.time = fd.getAll('time');                 // 희망 시간대(중복 선택) 배열로
+      submitBtn.disabled = true;
+      submitBtn.textContent = '신청 중…';
+
+      const res = await submitApplication(payload); // 어댑터: 지금은 로컬 저장, 이후 API/시트로 교체
+
+      if (res.ok) {
+        formCard.hidden = true;
+        doneCard.hidden = false;
+        doneCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '신청 완료하기';
+        alert('전송에 실패했어요. 잠시 후 다시 시도해주세요.');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Mood Reading & Styling</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;background:#f6f6f6;
+    -webkit-font-smoothing:antialiased;
+    user-select:none;-webkit-user-select:none;
+    overscroll-behavior-y:none;                 /* 위/아래 바운스 방지 */
+  }
+  /* 13 · 14 를 크게 세로로 쌓기 (축소 없이, 넘치면 스크롤) */
+  .stack{max-width:900px;margin:0 auto;}
+  .stack img{display:block;width:100%;height:auto;-webkit-user-drag:none;user-drag:none;}
+</style>
+</head>
+<body>
+  <div class="stack">
+    <img src="img/13.png" alt="Mood Reading">
+    <img src="img/14.png" alt="Reviews · Mood Styling">
+  </div>
+
+<script>
+/* 좌 25% 이전(compare) · 우 25% 다음(event) · 가운데는 그냥 읽기(세로 스크롤).
+   드래그(스크롤)는 넘김이 아니라 스크롤로 동작. */
+(function(){
+  const PREV='../compare/', NEXT='../event/';
+  window.addEventListener('click',e=>{
+    const x=e.clientX/window.innerWidth;
+    if(x<0.25) location.href=PREV;
+    else if(x>0.75) location.href=NEXT;
+    /* 가운데(0.25~0.75)는 아무 동작 없음 → 편하게 스크롤/읽기 */
+  });
+  window.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight') location.href=NEXT;
+    else if(e.key==='ArrowLeft') location.href=PREV;
+  });
+})();
+</script>
+</body>
+</html>

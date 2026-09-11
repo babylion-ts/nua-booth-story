@@ -1,0 +1,277 @@
+/* ── 전역 / 키오스크 하드닝 ───────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+/* class 의 display 가 [hidden] 을 이기지 못하도록 (bottomSafe:false 하단행 숨김). */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-system);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;                 /* 스크롤 차단 */
+  overscroll-behavior: none;        /* 당겨서 새로고침/바운스 차단 */
+  touch-action: manipulation;       /* 더블탭 줌 차단 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;      /* iOS 롱프레스 콜아웃 차단 */
+}
+
+body.is-preview { background: var(--backgrounds-secondary); }
+body.is-kiosk   { background: #000; }   /* 풀스크린 레터박스 */
+
+img { -webkit-user-drag: none; user-select: none; }
+
+/* ── 앱 레이아웃 ─────────────────────────────────────────────────── */
+#app { min-height: 100dvh; }
+
+body.is-preview #app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+}
+
+body.is-kiosk #app {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.stage-mount { display: contents; }
+
+/* ── 스테이지 (3:4 고정, crop 금지) ─────────────────────────────────── */
+.stage {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: var(--page-bg);
+  container-type: inline-size;        /* 셸 UI 를 cqw 로 스케일 */
+  --u: calc(100cqw / 432);            /* 1 논리 px (기준 폭 432pt) */
+}
+
+/* 데스크톱 프리뷰: 뷰포트 높이에 맞춰 3:4 유지 + 라운드/섀도 */
+body.is-preview .stage {
+  width: min(100%, calc((100dvh - 190px) * 0.75));
+  border-radius: var(--radius-frame);
+  box-shadow: var(--shadow-sheet);
+}
+
+/* 실기기 풀스크린: 화면을 가득 채우되 3:4 유지 (letterbox), 라운드/섀도 제거 */
+body.is-kiosk .stage {
+  width: min(100vw, calc(100dvh * 3 / 4));
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ── 배경 레이어 (크로스페이드) ─────────────────────────────────────── */
+.layers { position: absolute; inset: 0; z-index: 0; }
+.layer {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;             /* 스테이지 100% 채움, crop 금지(비율 동일) */
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 160ms var(--ease);
+  will-change: opacity;
+}
+
+/* ── (Planned) 히트 영역 ───────────────────────────────────────────── */
+/* 컨테이너는 클릭 통과(탭영역을 가리지 않게), 개별 히트영역만 이벤트 수신. */
+.hotspots { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.hotspot {
+  position: absolute;
+  pointer-events: auto;
+  min-width: calc(var(--u) * 44);     /* 최소 44×44pt */
+  min-height: calc(var(--u) * 44);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* ── 컴포넌트 B: 탭 영역 ───────────────────────────────────────────── */
+.tapzone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tapzone--left  { left: 0;  width: 26%; }
+.tapzone--right { right: 0; width: 74%; }
+.tapzone:active:not(:disabled) { background: rgba(0, 0, 0, 0.03); } /* 눌림만, 그 외 변화 없음 */
+.tapzone:disabled { cursor: default; }                              /* 오버레이 열림 시 */
+
+/* 데스크톱 프리뷰 호버: opacity만, 색 변경 없음 */
+@media (hover: hover) {
+  body.is-preview .tapzone:hover:not(:disabled) { opacity: 0.7; }
+}
+
+/* ── 프리뷰 헤더 ───────────────────────────────────────────────────── */
+.preview-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  justify-content: center;
+}
+.preview-header__title {
+  font-size: 13px;
+  font-weight: 590;
+  letter-spacing: -0.08px;
+  color: var(--labels-secondary);
+}
+.preview-header__meta {
+  font-size: 13px;
+  color: var(--labels-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 프리뷰 썸네일 레일 (운영자 goTo) ──────────────────────────────── */
+.rail {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: min(100%, 860px);
+}
+.rail__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 52px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+@media (hover: hover) { .rail__item:hover { opacity: 0.7; } }
+.rail__thumb {
+  width: 52px;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-thumb);
+  background-color: var(--page-bg);
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 0 0 1px var(--separators-non-opaque);
+}
+.rail__item.is-active .rail__thumb {
+  box-shadow: 0 0 0 2px var(--labels-primary);
+}
+.rail__num {
+  font-size: 11px;
+  line-height: 13px;
+  font-weight: 510;
+  color: var(--labels-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 오버레이 바텀 시트 ────────────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+.overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 300ms var(--ease);
+}
+.overlay.is-open .overlay__backdrop { opacity: 1; }
+
+.overlay__sheet {
+  position: relative;
+  width: min(100%, 560px);
+  max-height: 92dvh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  box-shadow: var(--shadow-sheet);
+  transform: translateY(100%);
+  transition: transform 300ms var(--ease);
+  overflow: hidden;
+}
+.overlay.is-open .overlay__sheet { transform: translateY(0); }
+
+.overlay__bar {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--separators-non-opaque);
+}
+.overlay__grabber {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 5px;
+  border-radius: var(--radius-capsule);
+  background: var(--fills-tertiary);
+}
+.overlay__title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 590;
+  letter-spacing: -0.2px;
+  color: var(--labels-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.overlay__close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--fills-tertiary);
+  color: var(--labels-secondary);
+  font-size: 18px;
+  cursor: pointer;
+}
+@media (hover: hover) { .overlay__close:hover { opacity: 0.7; } }
+
+.overlay__scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;              /* 시트 내부만 세로 스크롤 허용 */
+  overscroll-behavior: contain;
+  background: #fff;
+}
+.overlay__img { display: block; width: 100%; height: auto; }
+
+/* ── 에러 ──────────────────────────────────────────────────────────── */
+.error {
+  color: var(--labels-secondary);
+  text-align: center;
+  padding: 40px;
+  line-height: 1.5;
+}

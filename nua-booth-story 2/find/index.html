@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>find your best style</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  :root{
+    --ink:#111111;
+    --orange:#ff5a1f;      /* best 강조 (목업 오렌지) */
+    --tab-active:#333333;  /* 선택 탭 채움 */
+    --line:#111111;        /* 셀 테두리 */
+    --muted:#8a8a8e;
+    --ease:cubic-bezier(.4,0,.2,1);
+    --font:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--font);color:var(--ink);background:#fff;line-height:1.5;
+    -webkit-font-smoothing:antialiased;overscroll-behavior-y:none;
+    user-select:none;-webkit-user-select:none;
+  }
+  img{display:block;max-width:100%;}
+  .wrap{max-width:820px;margin:0 auto;padding:20px 24px 20px;position:relative;
+    height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+
+  /* 돌아가기 */
+  .back{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;
+    margin:0 0 8px -8px;border-radius:50%;text-decoration:none;transition:background 120ms var(--ease);}
+  .back:hover{background:rgba(0,0,0,.05);}
+
+  /* 타이틀 (best 만 오렌지) */
+  .headline{font-size:40px;line-height:1.08;font-weight:800;letter-spacing:-1px;margin:2px 0 18px;}
+  .headline .best{color:var(--orange);}
+
+  /* 탭 (여성 / 남성) */
+  .tabs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;flex:none;}
+  .tab{
+    padding:15px 0;border:1.5px solid var(--ink);background:#fff;border-radius:6px;
+    font-family:var(--font);font-size:19px;font-weight:700;color:var(--ink);cursor:pointer;
+    transition:background 140ms var(--ease),color 140ms var(--ease);
+  }
+  .tab.active{background:var(--tab-active);color:#fff;border-color:var(--tab-active);}
+
+  /* 그리드 3×2 — 남은 세로 공간을 꽉 채워 칸을 크고 길게 */
+  .grid{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:16px;}
+  .cell{cursor:zoom-in;border:1.5px solid var(--line);border-radius:4px;overflow:hidden;background:#fff;
+    min-height:0;transition:transform .14s var(--ease);}
+  .cell:active{transform:scale(.97);}
+  .cell img{width:100%;height:100%;object-fit:cover;object-position:top center;-webkit-user-drag:none;user-drag:none;pointer-events:none;}
+
+  /* ===== 확대 뷰어 (레퍼런스 형식 · 색감만 변경) ===== */
+  .zoom{position:fixed;inset:0;background:rgba(17,17,17,.95);display:none;z-index:70;touch-action:none;}
+  .zoom.show{display:block;}
+  .zoom-stage{position:absolute;inset:0;overflow:hidden;}
+  .zoom img{position:absolute;top:50%;left:50%;transform-origin:center center;will-change:transform;
+    user-select:none;-webkit-user-drag:none;max-width:none;background:#fff;border-radius:6px;}
+  .zoom-close{position:absolute;top:14px;right:16px;z-index:2;background:rgba(255,255,255,.16);border:none;
+    color:#fff;width:46px;height:46px;border-radius:50%;font-size:22px;cursor:pointer;}
+  .zoom-count{position:absolute;top:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.85);
+    font-size:14px;font-weight:600;letter-spacing:.04em;z-index:2;font-variant-numeric:tabular-nums;}
+  .zoom-hint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);
+    font-size:12px;letter-spacing:.04em;z-index:2;}
+  .pv-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;background:rgba(255,255,255,.16);
+    border:none;color:#fff;width:48px;height:48px;border-radius:50%;font-size:26px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;}
+  .pv-prev{left:14px;} .pv-next{right:14px;}
+
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="../?mode=kiosk" aria-label="돌아가기">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+
+    <h1 class="headline">find your <span class="best">best</span> style</h1>
+
+    <div class="tabs">
+      <button class="tab active" data-g="women" type="button">여성</button>
+      <button class="tab" data-g="men" type="button">남성</button>
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- 확대 오버레이 -->
+  <div class="zoom" id="zoom">
+    <button class="zoom-close" onclick="closeZoom()" aria-label="닫기">✕</button>
+    <div class="zoom-count" id="zoomCount"></div>
+    <button class="pv-nav pv-prev" onclick="pvStep(-1)" aria-label="이전">‹</button>
+    <button class="pv-nav pv-next" onclick="pvStep(1)" aria-label="다음">›</button>
+    <div class="zoom-stage" id="zoomStage"><img id="zoomImg" alt="확대 이미지"></div>
+    <div class="zoom-hint">좌우로 넘기기 · 더블탭/두 손가락 확대</div>
+  </div>
+
+<script>
+/* ===== 코디 사진 데이터 (여성 6 · 남성 6) ===== */
+const PEOPLE = {
+  women: ["img/women/1.png","img/women/2.png","img/women/3.png","img/women/4.png","img/women/5.png","img/women/6.png"],
+  men:   ["img/men/1-minimal.png","img/men/2-vintage.png","img/men/3-street.png","img/men/4-amekaji.png","img/men/5-casual.png","img/men/6-formal.png"]
+};
+
+/* ===== 확대 뷰어 (핀치줌 + 좌우 스와이프 + 더블탭) — 레퍼런스 형식 ===== */
+(function(){
+  const overlay=document.getElementById('zoom');
+  const stage=document.getElementById('zoomStage');
+  const img=document.getElementById('zoomImg');
+  const count=document.getElementById('zoomCount');
+  let scale=1,tx=0,ty=0,minS=1,maxS=5,start=null,list=[],idx=0;
+
+  function apply(){ img.style.transform=`translate(-50%,-50%) translate(${tx}px,${ty}px) scale(${scale})`; }
+  function fit(){
+    const vw=window.innerWidth, vh=window.innerHeight;
+    const r=Math.min(vw/img.naturalWidth,(vh-40)/img.naturalHeight)*0.92;
+    img.style.width=(img.naturalWidth*r)+'px'; img.style.height='auto';
+    scale=1; tx=0; ty=0; apply();
+  }
+  function show(){
+    img.src=list[idx];
+    count.textContent=(idx+1)+' / '+list.length;
+    img.onload=fit;
+    if(img.complete && img.naturalWidth) fit();
+  }
+  window.openPerson=function(g,i){ list=PEOPLE[g]; idx=i; overlay.classList.add('show'); show(); };
+  window.pvStep=function(d){ idx=(idx+d+list.length)%list.length; show(); };
+  window.closeZoom=function(){ overlay.classList.remove('show'); };
+
+  function dist(t){ return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY); }
+  stage.addEventListener('touchstart',e=>{
+    if(e.touches.length===2){ start={d:dist(e.touches),s:scale}; }
+    else if(e.touches.length===1){ start={x:e.touches[0].clientX,y:e.touches[0].clientY,tx,ty,single:true,t:Date.now()}; }
+  },{passive:false});
+  stage.addEventListener('touchmove',e=>{
+    if(!start) return;
+    if(e.touches.length===2 && start.d){ e.preventDefault();
+      scale=Math.min(maxS,Math.max(minS,start.s*(dist(e.touches)/start.d))); apply();
+    }else if(e.touches.length===1 && start.single && scale>1){ e.preventDefault();
+      tx=start.tx+(e.touches[0].clientX-start.x); ty=start.ty+(e.touches[0].clientY-start.y); apply();
+    }
+  },{passive:false});
+  stage.addEventListener('touchend',e=>{
+    if(start && start.single && scale<=1.02){
+      const dx=(e.changedTouches[0].clientX-start.x), dt=Date.now()-start.t;
+      if(Math.abs(dx)>50 && dt<500){ pvStep(dx<0?1:-1); start=null; return; }
+    }
+    if(scale<=1.02){ tx=0;ty=0;scale=1;apply(); }
+    start=null;
+  });
+  let lastTap=0;
+  stage.addEventListener('touchend',()=>{
+    const now=Date.now();
+    if(now-lastTap<300){ scale=scale>1?1:2.4; if(scale===1){tx=0;ty=0;} apply(); }
+    lastTap=now;
+  });
+  overlay.addEventListener('click',e=>{ if(e.target===overlay||e.target===stage) closeZoom(); });
+  stage.addEventListener('dblclick',()=>{ scale=scale>1?1:2.4; if(scale===1){tx=0;ty=0;} apply(); });
+  stage.addEventListener('wheel',e=>{ e.preventDefault(); scale=Math.min(maxS,Math.max(minS,scale-e.deltaY*0.002)); if(scale<=1){tx=0;ty=0;} apply(); },{passive:false});
+  document.addEventListener('keydown',e=>{
+    if(!overlay.classList.contains('show')) return;
+    if(e.key==='ArrowLeft') pvStep(-1);
+    else if(e.key==='ArrowRight') pvStep(1);
+    else if(e.key==='Escape') closeZoom();
+  });
+})();
+
+/* ===== 그리드 렌더 + 탭 전환 ===== */
+let cur='women';
+function renderGrid(){
+  const g=document.getElementById('grid'); g.innerHTML='';
+  PEOPLE[cur].forEach((src,i)=>{
+    const c=document.createElement('div'); c.className='cell';
+    c.innerHTML=`<img src="${src}" alt="스타일 ${i+1}">`;
+    c.onclick=()=>openPerson(cur,i);
+    g.appendChild(c);
+  });
+}
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    cur=t.dataset.g;
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.g===cur));
+    renderGrid();
+  });
+});
+renderGrid();
+
+/* ===== 양옆 터치로 넘기기 (첫 페이지처럼) — 코디칸/탭/확대뷰어는 각자 동작 ===== */
+(function(){
+  const zoom=document.getElementById('zoom');
+  const FWD='../compare/', BACK='../?mode=kiosk';
+  window.addEventListener('click',e=>{
+    if(zoom.classList.contains('show')) return;        /* 확대 중엔 무시 */
+    if(e.target.closest('.cell,.tab,.back')) return;   /* 코디칸=확대 / 탭=성별전환 / 뒤로가기=각자 동작 */
+    location.href = (e.clientX < window.innerWidth*0.26) ? BACK : FWD;  /* 좌 26% 이전 / 우 74% 다음 */
+  });
+  window.addEventListener('keydown',e=>{
+    if(zoom.classList.contains('show')) return;
+    if(e.key==='ArrowRight'||e.key===' ') location.href=FWD;
+    else if(e.key==='ArrowLeft') location.href=BACK;
+  });
+})();
+</script>
+</body>
+</html>
