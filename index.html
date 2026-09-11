@@ -296,11 +296,13 @@ body.is-kiosk .stage {
 /* ═══════════════ 3. COMPARE (추구미 vs 도달가능미) ═══════════════ */
 #view-compare.is-active {
   display: flex; align-items: center; justify-content: center;
-  min-height: 100dvh; overflow: hidden;
+  height: 100dvh; overflow: hidden;
 }
 #view-compare { font-family: var(--font-kr); }
+/* 이미지 둘레가 빈 여백(#f6f6f6, 배경과 같은 색)이라, 가운데 내용(이미지 가로 60%·세로 56%)이
+   화면 가로 75%·세로 80% 안에서 가장 크게 보이도록 키움. 넘친 여백은 잘려도 안 보임 */
 #view-compare .compare {
-  width: min(100vw, calc(100dvh * 3 / 4));
+  width: min(125vw, 107dvh); max-width: none; flex: none;
   height: auto; display: block;
 }
 #view-compare .zone {
