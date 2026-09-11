@@ -157,31 +157,6 @@ body.is-kiosk .stage {
 .preview-header__title {
   font-size: 13px; font-weight: 590; letter-spacing: -0.08px; color: var(--labels-secondary);
 }
-.preview-header__meta {
-  font-size: 13px; color: var(--labels-tertiary); font-variant-numeric: tabular-nums;
-}
-
-.rail {
-  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
-  max-width: min(100%, 860px);
-}
-.rail__item {
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  width: 52px; padding: 0; border: 0; background: transparent; cursor: pointer;
-}
-@media (hover: hover) { .rail__item:hover { opacity: 0.7; } }
-.rail__thumb {
-  width: 52px; aspect-ratio: 3 / 4;
-  border-radius: var(--radius-thumb);
-  background-color: var(--page-bg);
-  background-position: center; background-size: cover;
-  box-shadow: 0 0 0 1px var(--separators-non-opaque);
-}
-.rail__item.is-active .rail__thumb { box-shadow: 0 0 0 2px var(--labels-primary); }
-.rail__num {
-  font-size: 11px; line-height: 13px; font-weight: 510;
-  color: var(--labels-tertiary); font-variant-numeric: tabular-nums;
-}
 
 /* 오버레이 바텀 시트 */
 .overlay {
@@ -495,7 +470,7 @@ body.is-kiosk .stage {
   <!-- ═══ 2. FIND ═══ -->
   <section class="view" id="view-find">
     <div class="wrap">
-      <button class="back" data-go="story" type="button" aria-label="돌아가기">
+      <button class="back" id="findBack" type="button" aria-label="이전 페이지">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
 
@@ -663,11 +638,24 @@ var PAGES = [
     src: 'pages/02-fashion.png',
     label: 'NUA image consulting',
     reveal: null,
-    /* 이미지 속 글자 교체 — 좌표는 원본 PNG(864×1152) 픽셀, y = 글자 기준선 */
-    patch: { text: 'image consulting', x: 432, y: 664, size: 52, cover: [150, 608, 564, 92], bg: '#f6f6f6' },
+    /* 이미지 재배치 + 글자 교체 — 좌표는 원본 PNG(864×1152) 픽셀.
+       bg 로 전체를 덮고, moves 의 원본 영역 [x, y, w, h] 을 새 위치 [x, y] 에 다시 그림.
+       위·아래 여백 232 / 버튼↔글자 간격 146 으로 위아래 대칭, NUA 가로 가운데, 좌우 선 높이 맞춤.
+       text.y = 글자 기준선 */
+    patch: {
+      bg: '#f6f6f6',
+      moves: [
+        { from: [336, 246, 192, 128], to: [336, 227] },   // mood reading 버튼
+        { from: [315, 512, 245, 100], to: [310, 488] },   // NUA
+        { from: [0, 574, 280, 16],    to: [0, 550] },     // 왼쪽 선
+        { from: [584, 571, 280, 16],  to: [584, 550] },   // 오른쪽 선
+        { from: [336, 812, 192, 131], to: [336, 794] }    // mood styling 버튼
+      ],
+      text: { text: 'image consulting', x: 432, y: 640, size: 52 }
+    },
     hotspots: [
-      { id: 'reading', x: 36, y: 18.5, w: 28, h: 16, action: 'openOverlay:reading' },
-      { id: 'styling', x: 36, y: 67.5, w: 28, h: 16, action: 'openOverlay:styling' }
+      { id: 'reading', x: 36, y: 17.2, w: 28, h: 16, action: 'openOverlay:reading' },   // 버튼 가운데 기준
+      { id: 'styling', x: 36, y: 66.6, w: 28, h: 16, action: 'openOverlay:styling' }
     ]
   }
 ];
@@ -715,6 +703,8 @@ var ZOOM_FRAME = {
   men:   { aspect: 735 / 1105, top: 3.95, height: 92.1 },
   women: { aspect: 735 / 1105, top: 3.95, height: 92.1 }
 };
+/* find 화면 양쪽 끝 넘김 영역 (화면 폭 대비) — 이 안에서 사진을 탭하면 사진 대신 이전/다음 화면으로 */
+var FIND_EDGE = 0.08;
 
 /* ── 그 외 이미지 ────────────────────────────────────────────── */
 var IMAGES = {
@@ -748,6 +738,7 @@ function applyRoute() {
     document.getElementById('view-' + v).classList.toggle('is-active', v === name);
   });
   window.scrollTo(0, 0);
+  if (name === 'event' && window.resetEvent) window.resetEvent();
   if (name === 'story') { kickIdle(); } else { stopIdle(); }
 }
 
@@ -801,9 +792,7 @@ store.setOnPastEnd(function () { go('find'); });
   if (!kiosk) {
     var header = document.createElement('div');
     header.className = 'preview-header';
-    header.innerHTML =
-      '<span class="preview-header__title">NUA · 부스 태블릿 스토리</span>' +
-      '<span class="preview-header__meta">세로 3:4 · ' + PAGES.length + '장</span>';
+    header.innerHTML = '<span class="preview-header__title">NUA</span>';
     root.appendChild(header);
   }
 
@@ -823,13 +812,18 @@ store.setOnPastEnd(function () { go('find'); });
     layer.style.backgroundImage = 'url("' + img(p.src) + '")';
     layer.setAttribute('role', 'img');
     layer.setAttribute('aria-label', p.label);
-    /* patch: 배경색 사각형으로 원래 글자를 덮고 새 글자를 얹음 */
+    /* patch: 배경색으로 전체를 덮고, 원본 이미지의 요소(moves)를 새 위치에 다시 그린 뒤 새 글자를 얹음 */
     if (p.patch) {
-      var t = p.patch;
+      var t = p.patch, url = img(p.src);
       layer.innerHTML =
         '<svg class="layer__patch" viewBox="0 0 864 1152" aria-hidden="true">' +
-          '<rect x="' + t.cover[0] + '" y="' + t.cover[1] + '" width="' + t.cover[2] + '" height="' + t.cover[3] + '" fill="' + t.bg + '"/>' +
-          '<text x="' + t.x + '" y="' + t.y + '" text-anchor="middle" font-family="\'Noto Sans KR\', sans-serif" font-weight="700" font-size="' + t.size + '" fill="#000">' + t.text + '</text>' +
+          '<rect width="864" height="1152" fill="' + t.bg + '"/>' +
+          t.moves.map(function (m) {
+            var f = m.from;
+            return '<svg x="' + m.to[0] + '" y="' + m.to[1] + '" width="' + f[2] + '" height="' + f[3] +
+              '" viewBox="' + f.join(' ') + '"><image href="' + url + '" width="864" height="1152"/></svg>';
+          }).join('') +
+          '<text x="' + t.text.x + '" y="' + t.text.y + '" text-anchor="middle" font-family="\'Noto Sans KR\', sans-serif" font-weight="700" font-size="' + t.text.size + '" fill="#000">' + t.text.text + '</text>' +
         '</svg>';
     }
     layerWrap.appendChild(layer);
@@ -959,24 +953,6 @@ store.setOnPastEnd(function () { go('find'); });
       }, 300);
     }
   });
-
-  /* 프리뷰 썸네일 레일 */
-  if (!kiosk) {
-    var rail = document.createElement('div');
-    rail.className = 'rail';
-    PAGES.forEach(function (p, i) {
-      var item = document.createElement('button');
-      item.type = 'button';
-      item.className = 'rail__item';
-      item.innerHTML =
-        '<span class="rail__thumb" style="background-image:url(\'' + img(p.src) + '\')"></span>' +
-        '<span class="rail__num">' + String(i + 1).padStart(2, '0') + '</span>';
-      item.addEventListener('click', function () { store.goTo(i); });
-      rail.appendChild(item);
-      store.subscribe(function (s) { item.classList.toggle('is-active', s.index === i); });
-    });
-    root.appendChild(rail);
-  }
 })();
 
 /* 프리뷰 vs 키오스크 모드 (?mode=kiosk / PWA standalone) */
@@ -1105,7 +1081,13 @@ function isKioskMode() {
       var css = frameCss(src, FIND_FRAME);
       c.innerHTML = '<img src="' + img(src) + '" alt="스타일 ' + (i + 1) + '"' +
         (css ? ' class="framed" style="' + css + '"' : '') + '>';
-      c.addEventListener('click', function () { openPerson(cur, i); });
+      /* 양쪽 끝(FIND_EDGE) 안을 탭하면 사진 대신 이전/다음 화면으로 */
+      c.addEventListener('click', function (e) {
+        var x = e.clientX / window.innerWidth;
+        if (x < FIND_EDGE) goPrev();
+        else if (x > 1 - FIND_EDGE) go('compare');
+        else openPerson(cur, i);
+      });
       gridEl.appendChild(c);
     });
   }
@@ -1120,16 +1102,21 @@ function isKioskMode() {
   });
   renderGrid();
 
-  /* 양옆 탭으로 넘기기 (좌 26% 이전 / 우 74% 다음) */
+  /* 이전 = 스토리 마지막 장 (바로 전 페이지), 다음 = compare */
+  function goPrev() { store.goTo(PAGES.length - 1); go('story'); }
+  document.getElementById('findBack').addEventListener('click', goPrev);
+
+  /* 사진 없는 곳 탭으로 넘기기 (좌 26% 이전 / 우 74% 다음) */
   viewEl.addEventListener('click', function (e) {
     if (zoomOpen()) return;
     if (e.target.closest('.cell, .tab, .back, .zoom')) return;
-    go(e.clientX < window.innerWidth * 0.26 ? 'story' : 'compare');
+    if (e.clientX < window.innerWidth * 0.26) goPrev(); else go('compare');
   });
 
   window.findZoomOpen = zoomOpen;
   window.findPvStep = pvStep;
   window.findCloseZoom = closeZoom;
+  window.findGoPrev = goPrev;
 })();
 
 
@@ -1235,6 +1222,17 @@ function submitApplication(payload) {
 
   consent.addEventListener('change', function () { submitBtn.disabled = !consent.checked; });
 
+  /* 이벤트 화면에 들어올 때마다 처음 상태로 — 신청 버튼 보이기, 폼 비우고 닫기, 완료 카드 닫기
+     (키오스크에서 다음 사람이 이전 사람의 입력이나 완료 화면을 보지 않도록) */
+  window.resetEvent = function () {
+    form.reset();
+    submitBtn.disabled = true;
+    submitBtn.textContent = '신청 완료하기';
+    formCard.hidden = true;
+    doneCard.hidden = true;
+    applyBtn.hidden = false;
+  };
+
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     if (!form.checkValidity()) { form.reportValidity(); return; }
@@ -1279,7 +1277,7 @@ window.addEventListener('keydown', function (e) {
       return;
     }
     if (e.key === 'ArrowRight' || e.key === ' ') go('compare');
-    else if (e.key === 'ArrowLeft') go('story');
+    else if (e.key === 'ArrowLeft') window.findGoPrev();
   } else if (currentView === 'compare') {
     if (e.key === 'Escape') { window.compareClosePop(); return; }
     if (window.comparePopOpen()) return;
