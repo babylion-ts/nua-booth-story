@@ -15,6 +15,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <!-- 스토리 이미지 속 글자 교체(patch)용 — 원본 PNG와 같은 폰트 -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700&display=block">
+<!-- 1페이지 정답 'mood' 글씨체 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=block">
 
 <style>
 /* ═══════════════════════════════════════════════════════════════
@@ -648,7 +650,15 @@ var PAGES = [
   {
     src: 'pages/01-hooking.png',
     label: '후킹 — 패션의 완성은 ___이다',
-    reveal: { src: 'pages/01-hooking-answer.png', x: 5, y: 41, w: 58, h: 16 },
+    /* 아래 해시태그 두 줄을 왼쪽으로 30px (가운데 맞춤). 빈칸/정답 화면 모두에 적용 */
+    patch: { bg: '#f6f6f6', cover: [98, 706, 730, 170],
+             moves: [{ from: [98, 706, 730, 170], to: [68, 706] }] },
+    /* 정답을 보여줄 때 이미지 속 주황 '무드'를 덮고 'mood' 로 다시 그림
+       (좌표는 원본 PNG 864×1152 픽셀, text.y = 글자 기준선) */
+    reveal: { src: 'pages/01-hooking-answer.png', x: 5, y: 41, w: 58, h: 16,
+      patch: { bg: '#f6f6f6', cover: [180, 498, 230, 116],
+        text: { text: 'mood', x: 291, y: 598, size: 116, color: '#ff5400',
+                font: "'Bebas Neue', sans-serif", weight: 400, tracking: 8 } } },
     hotspots: []
   },
   {
@@ -670,9 +680,10 @@ var PAGES = [
       ],
       text: { text: 'image consulting', x: 432, y: 640, size: 52 }
     },
+    /* 버튼 팝업 기능 끔 — 되살리려면 아래 두 줄의 주석(//)을 지우세요 */
     hotspots: [
-      { id: 'reading', x: 36, y: 17.2, w: 28, h: 16, action: 'openOverlay:reading' },   // 버튼 가운데 기준
-      { id: 'styling', x: 36, y: 66.6, w: 28, h: 16, action: 'openOverlay:styling' }
+      // { id: 'reading', x: 36, y: 17.2, w: 28, h: 16, action: 'openOverlay:reading' },
+      // { id: 'styling', x: 36, y: 66.6, w: 28, h: 16, action: 'openOverlay:styling' }
     ]
   }
 ];
@@ -831,26 +842,33 @@ store.setOnPastEnd(function () { go('find'); });
 
   var layerWrap = document.createElement('div');
   layerWrap.className = 'layers';
+  /* 이미지 위 덮어 그리기 —
+     bg+cover: 덮을 색과 영역(없으면 전체), moves: 원본 영역 [x,y,w,h] 을 새 위치 [x,y] 로,
+     text: 새로 쓸 글자 (y 는 기준선). 좌표는 모두 원본 PNG 864×1152 픽셀 */
+  function patchSvg(t, url) {
+    var c = t.cover || [0, 0, 864, 1152], x = t.text;
+    return '<svg class="layer__patch" viewBox="0 0 864 1152" aria-hidden="true">' +
+      '<rect x="' + c[0] + '" y="' + c[1] + '" width="' + c[2] + '" height="' + c[3] + '" fill="' + t.bg + '"/>' +
+      (t.moves || []).map(function (m) {
+        var f = m.from;
+        return '<svg x="' + m.to[0] + '" y="' + m.to[1] + '" width="' + f[2] + '" height="' + f[3] +
+          '" viewBox="' + f.join(' ') + '"><image href="' + url + '" width="864" height="1152"/></svg>';
+      }).join('') +
+      (x ? '<text x="' + x.x + '" y="' + x.y + '" text-anchor="middle" font-family="' +
+        (x.font || "'Noto Sans KR', sans-serif") + '" font-weight="' + (x.weight || 700) +
+        '" font-style="' + (x.style || 'normal') + '" font-size="' + x.size +
+        '" letter-spacing="' + (x.tracking || 0) + '" fill="' + (x.color || '#000') + '">' + x.text + '</text>' : '') +
+      '</svg>';
+  }
+
   var layers = PAGES.map(function (p) {
     var layer = document.createElement('div');
     layer.className = 'layer';
     layer.style.backgroundImage = 'url("' + img(p.src) + '")';
     layer.setAttribute('role', 'img');
     layer.setAttribute('aria-label', p.label);
-    /* patch: 배경색으로 전체를 덮고, 원본 이미지의 요소(moves)를 새 위치에 다시 그린 뒤 새 글자를 얹음 */
-    if (p.patch) {
-      var t = p.patch, url = img(p.src);
-      layer.innerHTML =
-        '<svg class="layer__patch" viewBox="0 0 864 1152" aria-hidden="true">' +
-          '<rect width="864" height="1152" fill="' + t.bg + '"/>' +
-          t.moves.map(function (m) {
-            var f = m.from;
-            return '<svg x="' + m.to[0] + '" y="' + m.to[1] + '" width="' + f[2] + '" height="' + f[3] +
-              '" viewBox="' + f.join(' ') + '"><image href="' + url + '" width="864" height="1152"/></svg>';
-          }).join('') +
-          '<text x="' + t.text.x + '" y="' + t.text.y + '" text-anchor="middle" font-family="\'Noto Sans KR\', sans-serif" font-weight="700" font-size="' + t.text.size + '" fill="#000">' + t.text.text + '</text>' +
-        '</svg>';
-    }
+    /* patch: 이미지 위에 덮어 그리기 (아래 patchSvg) */
+    if (p.patch) layer.innerHTML = patchSvg(p.patch, img(p.src));
     layerWrap.appendChild(layer);
     return layer;
   });
@@ -885,7 +903,14 @@ store.setOnPastEnd(function () { go('find'); });
       var orig = img(page.src);
       var answer = img(page.reveal.src);
       new Image().src = answer;
-      layers[index].style.backgroundImage = 'url("' + orig + '")';
+      /* 페이지 공통 patch + (정답일 때) 정답 patch 를 함께 그림 */
+      var paint = function (on) {
+        var url = on ? answer : orig;
+        layers[index].style.backgroundImage = 'url("' + url + '")';
+        layers[index].innerHTML = (page.patch ? patchSvg(page.patch, url) : '') +
+          (on && page.reveal.patch ? patchSvg(page.reveal.patch, url) : '');
+      };
+      paint(false);
       var shown = false;
       var rb = document.createElement('button');
       rb.type = 'button';
@@ -897,7 +922,7 @@ store.setOnPastEnd(function () { go('find'); });
       rb.style.height = page.reveal.h + '%';
       rb.addEventListener('click', function () {
         shown = !shown;
-        layers[index].style.backgroundImage = 'url("' + (shown ? answer : orig) + '")';
+        paint(shown);
       });
       hotspotWrap.appendChild(rb);
     }
