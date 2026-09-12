@@ -374,7 +374,19 @@ body.is-kiosk .stage {
   margin-top: 14px; background: var(--card); border-radius: 22px; padding: 28px 22px 26px;
   box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 12px 32px rgba(0,0,0,.06);
 }
+#view-apply .form-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 #view-apply .form-card h2 { font-size: 24px; font-weight: 800; letter-spacing: -.6px; margin: 0 0 6px; }
+#view-apply .extra-toggle {
+  flex: none; width: 36px; height: 36px; padding: 0; display: grid; place-items: center;
+  font-size: 20px; line-height: 1; border: 1.5px solid var(--line); border-radius: 10px;
+  background: #fff; color: var(--ink-soft); font-family: var(--font-kr);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: background 120ms var(--ease), color 120ms var(--ease), border-color 120ms var(--ease);
+}
+#view-apply .extra-toggle.is-on { background: var(--ink); color: #fff; border-color: var(--ink); }
+#view-apply textarea {
+  min-height: 88px; line-height: 1.5; resize: vertical;
+}
 #view-apply .form-sub { font-size: 14px; color: var(--label); margin: 0 0 24px; line-height: 1.5; }
 #view-apply .field { margin-bottom: 16px; }
 #view-apply .field > label { display: block; font-size: 14px; font-weight: 600; color: var(--ink-soft); margin-bottom: 8px; }
@@ -391,13 +403,13 @@ body.is-kiosk .stage {
   transition: background 120ms var(--ease), color 120ms var(--ease), border-color 120ms var(--ease);
 }
 #view-apply .chip input:checked + span { background: var(--ink); color: #fff; border-color: var(--ink); }
-#view-apply input, #view-apply select {
+#view-apply input, #view-apply select, #view-apply textarea {
   width: 100%; font-family: var(--font-kr); font-size: 16px; color: var(--ink); background: #fff;
   border: 1.5px solid var(--line); border-radius: 12px; padding: 14px;
   -webkit-appearance: none; appearance: none; transition: border-color 120ms var(--ease);
 }
-#view-apply input::placeholder { color: #b8b8bc; }
-#view-apply input:focus, #view-apply select:focus { outline: none; border-color: var(--ink); }
+#view-apply input::placeholder, #view-apply textarea::placeholder { color: #b8b8bc; }
+#view-apply input:focus, #view-apply select:focus, #view-apply textarea:focus { outline: none; border-color: var(--ink); }
 #view-apply .consent {
   display: flex; gap: 10px; align-items: flex-start; margin: 8px 0 22px;
   font-size: 13px; color: var(--label); line-height: 1.55;
@@ -425,6 +437,13 @@ body.is-kiosk .stage {
 #view-apply .done .badge svg { width: 34px; height: 34px; }
 #view-apply .done h2 { font-size: 24px; font-weight: 800; letter-spacing: -.6px; margin: 0 0 8px; }
 #view-apply .done p { font-size: 15px; color: var(--label); line-height: 1.6; margin: 0; }
+#view-apply .apply-head { display: flex; align-items: center; justify-content: space-between; }
+#view-apply .home-link {
+  margin: 0 -4px 8px 0; padding: 8px 12px; border: 0; border-radius: 10px;
+  background: transparent; color: var(--label); font-family: var(--font-kr);
+  font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 120ms var(--ease);
+}
+#view-apply .home-link:hover { opacity: .65; }
 #view-apply .home-btn {
   display: inline-block; margin-top: 24px; padding: 14px 30px;
   border: 2px solid var(--ink); border-radius: 14px;
@@ -536,12 +555,18 @@ body.is-kiosk .stage {
   <!-- ═══ 6. APPLY ═══ (신청 폼 — 이벤트 화면의 신청 버튼으로 넘어옴) -->
   <section class="view" id="view-apply">
     <main class="page">
-      <button class="back" data-go="event" type="button" aria-label="이전 페이지">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="#141414" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <div class="apply-head">
+        <button class="back" data-go="event" type="button" aria-label="이전 페이지">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="#141414" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="home-link" data-home type="button">처음으로</button>
+      </div>
 
       <section class="form-card" id="formCard">
-        <h2>이벤트 신청</h2>
+        <div class="form-head">
+          <h2>이벤트 신청</h2>
+          <button class="extra-toggle" id="extraBtn" type="button" aria-expanded="false" aria-controls="extraField" aria-label="기타 정보 입력">+</button>
+        </div>
         <p class="form-sub">아래 정보를 남겨주시면 순서대로 연락드릴게요.</p>
 
         <form id="applyForm" novalidate>
@@ -572,6 +597,11 @@ body.is-kiosk .stage {
             <div class="chips" id="timeChips"></div>
           </div>
 
+          <div class="field" id="extraField" hidden>
+            <label for="note">그 외</label>
+            <textarea id="note" name="note" rows="3" placeholder="예) 궁금한 점, 요청사항"></textarea>
+          </div>
+
           <label class="consent">
             <input type="checkbox" id="consent" name="consent" required>
             <span>개인정보 수집·이용에 동의합니다. (필수)<br>
@@ -588,7 +618,7 @@ body.is-kiosk .stage {
         </div>
         <h2>신청이 완료되었어요!</h2>
         <p>남겨주신 연락처로 예약 안내를 드릴게요.<br>나의 무드, 곧 함께 완성해요.</p>
-        <button class="home-btn" data-go="story" type="button">처음으로</button>
+        <button class="home-btn" data-home type="button">처음으로</button>
       </section>
     </main>
   </section>
@@ -734,10 +764,13 @@ function applyRoute() {
   if (name === 'story') { kickIdle(); } else { stopIdle(); }
 }
 
-/* data-go="..." 버튼은 전부 라우팅 */
+/* data-go="..." 버튼은 전부 라우팅. data-home 은 스토리 1페이지부터 다시 시작 */
 document.addEventListener('click', function (e) {
-  var t = e.target.closest ? e.target.closest('[data-go]') : null;
-  if (t) { e.preventDefault(); go(t.getAttribute('data-go')); }
+  var t = e.target.closest ? e.target.closest('[data-go], [data-home]') : null;
+  if (!t) return;
+  e.preventDefault();
+  if (t.hasAttribute('data-home')) { store.reset(); go('story'); }
+  else go(t.getAttribute('data-go'));
 });
 window.addEventListener('hashchange', applyRoute);
 
@@ -1210,10 +1243,22 @@ function submitApplication(payload) {
 
   consent.addEventListener('change', function () { submitBtn.disabled = !consent.checked; });
 
+  /* "+ 기타 정보" — 누르면 자유 입력칸이 열리고 다시 누르면 닫힘 */
+  var extraBtn = document.getElementById('extraBtn');
+  var extraField = document.getElementById('extraField');
+  function showExtra(on) {
+    extraField.hidden = !on;
+    extraBtn.classList.toggle('is-on', on);
+    extraBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on) requestAnimationFrame(function () { document.getElementById('note').focus(); });
+  }
+  extraBtn.addEventListener('click', function () { showExtra(extraField.hidden); });
+
   /* 신청 폼 처음 상태로 — 입력 비우기, 완료 카드 닫기 (호출은 applyRoute)
      키오스크에서 다음 사람이 이전 사람의 입력이나 완료 화면을 보지 않도록 */
   window.resetApply = function () {
     form.reset();
+    showExtra(false);
     submitBtn.disabled = true;
     submitBtn.textContent = '신청 완료하기';
     formCard.hidden = false;
