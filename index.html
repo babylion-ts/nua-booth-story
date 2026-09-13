@@ -87,8 +87,8 @@ body[data-view="compare"] {
 body[data-view="story"].is-preview { background: var(--backgrounds-secondary); }
 body[data-view="story"].is-kiosk   { background: #000; }
 body[data-view="find"]    { background: #fff; }
-body[data-view="compare"] { background: #f6f6f6; }
-body[data-view="mood"]    { background: #f6f6f6; user-select: none; -webkit-user-select: none; }
+body[data-view="compare"] { background: #ffffff; }
+body[data-view="mood"]    { background: #e9e9ec; user-select: none; -webkit-user-select: none; }
 body[data-view="event"],
 body[data-view="apply"]   { background: #f3f3f4; }
 
@@ -274,11 +274,17 @@ body.is-kiosk .stage {
   height: 100dvh; overflow: hidden;
 }
 #view-compare { font-family: var(--font-kr); }
-/* 이미지 둘레가 빈 여백(#f6f6f6, 배경과 같은 색)이라, 가운데 내용(이미지 가로 60%·세로 56%)이
-   화면 가로 75%·세로 80% 안에서 가장 크게 보이도록 키움. 넘친 여백은 잘려도 안 보임 */
+/* 제목 + 사진 두 줄을 흰 상자 하나에 담음.
+   원본(1500×2000)에서 [285, 428, 930, 1140] 영역만 잘라 씀 */
+#view-compare .cbox {
+  flex: none; width: min(92vw, 75dvh); padding: 18px;
+  background: #fff; border-radius: 26px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05), 0 14px 36px rgba(0,0,0,.12);
+}
+#view-compare .ccut { overflow: hidden; aspect-ratio: 930 / 1140; }
 #view-compare .compare {
-  width: min(125vw, 107dvh); max-width: none; flex: none;
-  height: auto; display: block;
+  display: block; max-width: none;
+  width: 161.29%; margin-left: -30.65%; margin-top: -46.02%;
 }
 #view-compare .zone {
   position: fixed; top: 0; bottom: 0; z-index: 10;
@@ -310,10 +316,23 @@ body.is-kiosk .stage {
 /* ═══════════════ 4. MOOD ═══════════════ */
 #view-mood.is-active { display: block; }
 #view-mood { font-family: var(--font-kr); }
-#view-mood .stack { max-width: 900px; margin: 0 auto; }
-#view-mood .stack img { display: block; width: 100%; height: auto; }
-/* 14.png 아래 빈 여백(약 700px) 잘라냄 — 원본 1500×2000 중 위 1400px만 표시 */
-#view-mood #moodImg2 { aspect-ratio: 1500 / 1400; object-fit: cover; object-position: top; }
+#view-mood .stack {
+  max-width: 900px; margin: 0 auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+/* 구획 카드 — 원본 이미지에서 필요한 부분만 잘라 둥근 사각형에 담음 */
+#view-mood .mcard {
+  position: relative; overflow: hidden; border-radius: 24px; background: #f6f6f6;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 10px 28px rgba(0,0,0,.07);
+}
+#view-mood .mcard img { display: block; width: 100%; height: auto; }
+#view-mood .mcrop { overflow: hidden; }
+/* 단계 표시 — 카드 맨 위 흰 띠 */
+#view-mood .mhead {
+  display: flex; align-items: center; gap: 8px; padding: 11px 16px; background: #fff;
+  font-family: var(--font-kr); font-size: 13px; font-weight: 800; letter-spacing: .1em; color: #6b6b70;
+}
+#view-mood .mhead i { flex: 1; height: 1px; background: #e3e3e6; }
 
 /* ═══════════════ 5. EVENT (이벤트 안내) · 6. APPLY (신청 폼) ═══════════════ */
 #view-event.is-active,
@@ -363,9 +382,9 @@ body.is-kiosk .stage {
   font-size: 20px; font-weight: 800; letter-spacing: .5px; padding: 8px 20px; border-radius: 999px;
 }
 #view-event .cta {
-  display: block; width: 100%; margin-top: 26px;
-  background: var(--card); color: var(--ink); border: 2px solid var(--ink); border-radius: 16px;
-  padding: 20px; font-family: var(--font-kr); font-size: 21px; font-weight: 800; letter-spacing: -.5px;
+  display: block; width: 100%; margin: 22px 0 0;
+  background: var(--card); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 12px;
+  padding: 14px 28px; font-family: var(--font-kr); font-size: 16px; font-weight: 700; letter-spacing: -.2px;
   cursor: pointer; transition: opacity 120ms var(--ease);
 }
 #view-event .cta:hover { opacity: .65; }
@@ -495,7 +514,9 @@ body.is-kiosk .stage {
 
   <!-- ═══ 3. COMPARE ═══ -->
   <section class="view" id="view-compare">
-    <img class="compare" id="compareImg" alt="추구미 vs 도달가능미">
+    <div class="cbox">
+      <div class="ccut"><img class="compare" id="compareImg" alt="추구미 vs 도달가능미"></div>
+    </div>
 
     <button class="zone zone-prev" type="button" aria-label="이전"></button>
     <button class="zone zone-center" type="button" aria-label="변우석 비교 보기"></button>
@@ -509,10 +530,7 @@ body.is-kiosk .stage {
 
   <!-- ═══ 4. MOOD ═══ -->
   <section class="view" id="view-mood">
-    <div class="stack">
-      <img id="moodImg1" alt="Mood Reading">
-      <img id="moodImg2" alt="Reviews · Mood Styling">
-    </div>
+    <div class="stack" id="moodStack"></div>
   </section>
 
   <!-- ═══ 5. EVENT ═══ -->
@@ -740,11 +758,17 @@ var FIND_EDGE = 0.08;
 var IMAGES = {
   compare: 'compare/img/compare.png',
   byeon:   'compare/img/byeon.png',
-  mood1:   'mood/img/13.png',
-  mood2:   'mood/img/14.png',
   event1:  'event/img/personal-color.jpg',
   event2:  'event/img/body-type.jpg'
 };
+
+/* ── 무드 화면 구획 3개 ──────────────────────────────────────
+   crop: 원본 이미지(1500×2000)에서 잘라 보여줄 영역 [x, y, w, h] */
+var MOOD_CARDS = [
+  { src: 'mood/img/13.png', crop: [0, 40, 1500, 1925], alt: 'Mood Reading', step: '1' },
+  { src: 'mood/img/14.png', crop: [0, 33, 1500, 400],  alt: 'Reviews' },
+  { src: 'mood/img/14.png', crop: [0, 622, 1500, 718], alt: 'Mood Styling', step: '2' }
+];
 
 /* ── 이벤트 신청 희망 시간대 ─────────────────────────────────── */
 var TIME_SLOTS = ['11:00','12:00','13:00','14:00','15:00','16:00',
@@ -1195,8 +1219,16 @@ function isKioskMode() {
    MOOD — 이미지 2장 세로 스택, 좌 25% 이전 / 우 25% 다음
    ═══════════════════════════════════════════════════════════════ */
 (function buildMood() {
-  document.getElementById('moodImg1').src = img(IMAGES.mood1);
-  document.getElementById('moodImg2').src = img(IMAGES.mood2);
+  /* 구획마다 카드 하나 — 이미지를 위로 끌어올려(margin-top) 필요한 부분만 보이게 함 */
+  document.getElementById('moodStack').innerHTML = MOOD_CARDS.map(function (c) {
+    var k = c.crop;
+    return '<div class="mcard">' +
+      (c.step ? '<div class="mhead">STEP ' + c.step + '<i></i></div>' : '') +
+      '<div class="mcrop" style="aspect-ratio:' + k[2] + ' / ' + k[3] + '">' +
+        '<img src="' + img(c.src) + '" alt="' + c.alt + '" style="margin-top:' +
+        (-k[1] / k[2] * 100).toFixed(3) + '%">' +
+      '</div></div>';
+  }).join('');
 
   document.getElementById('view-mood').addEventListener('click', function (e) {
     var x = e.clientX / window.innerWidth;
