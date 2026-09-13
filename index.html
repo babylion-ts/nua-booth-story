@@ -336,7 +336,9 @@ body.is-kiosk .stage {
 
 /* ═══════════════ 5. EVENT (이벤트 안내) · 6. APPLY (신청 폼) ═══════════════ */
 #view-event.is-active,
-#view-apply.is-active { display: flex; justify-content: center; padding: 40px 20px 56px; }
+#view-apply.is-active {
+  display: flex; justify-content: center; min-height: 100dvh; padding: 32px 20px 40px;
+}
 #view-event, #view-apply {
   --card: #ffffff;
   --ink: #141414;
@@ -350,7 +352,7 @@ body.is-kiosk .stage {
   color: var(--ink);
   width: 100%;
 }
-#view-event .page, #view-apply .page { width: 100%; max-width: 440px; }
+#view-event .page, #view-apply .page { width: 100%; max-width: 520px; margin: auto 0; }
 #view-event .headline {
   font-size: 44px; line-height: 1.16; font-weight: 800; letter-spacing: -1.2px; margin: 4px 0 28px;
 }
@@ -359,13 +361,13 @@ body.is-kiosk .stage {
   box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 12px 32px rgba(0,0,0,.06);
 }
 #view-event .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--card); }
-#view-event .hero img { display: block; width: 100%; height: 170px; object-fit: cover; }
+#view-event .hero img { display: block; width: 100%; height: 200px; object-fit: cover; }
 #view-event .panel { padding: 14px 22px 16px; }
 #view-event .eyebrow {
   font-size: 13px; font-weight: 600; letter-spacing: 1.5px; color: var(--label); margin: 0 0 16px;
 }
 #view-event .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
-#view-event .list li { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; color: var(--ink-soft); }
+#view-event .list li { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 600; color: var(--ink-soft); }
 #view-event .check { flex: none; width: 22px; height: 22px; }
 #view-event .check svg { display: block; width: 100%; height: 100%; }
 #view-event .divider { height: 1px; background: var(--line); margin: 18px 0 14px; }
@@ -384,7 +386,7 @@ body.is-kiosk .stage {
 #view-event .cta {
   display: block; width: 100%; margin: 12px 0 0;
   background: var(--card); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 12px;
-  padding: 14px 28px; font-family: var(--font-kr); font-size: 16px; font-weight: 700; letter-spacing: -.2px;
+  padding: 16px 28px; font-family: var(--font-kr); font-size: 17px; font-weight: 700; letter-spacing: -.2px;
   cursor: pointer; transition: opacity 120ms var(--ease);
 }
 #view-event .cta:hover { opacity: .65; }
